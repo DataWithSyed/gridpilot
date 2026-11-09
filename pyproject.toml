@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridpilot-core"
+version = "0.1.0"
+description = "Paper-trading energy-market agent core: BESS model, strategies, risk limits, Energy-Charts replay, P50/P90"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "DataWithSyed" }]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.11",
+  "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
