@@ -1,10 +1,11 @@
 """GridPilot probabilistic day-ahead price forecasting (paper trading only).
 
 Links ideas from de-day-ahead-price-forecasting / de-wind-probabilistic-forecasting
-without duplicating their full pipelines. Price-lag + calendar features only in this
-package (no TSO load/wind forecasts here — see limitations).
+without duplicating their full pipelines. Supports price-only or day-ahead
+fundamentals (load/solar/wind) features, plus rolling CQR calibration.
 """
-from gridpilot_forecast.forecaster import WalkForwardQuantileForecast
+from gridpilot_forecast.conformal import RollingCQR, coverage, reliability_table
+from gridpilot_forecast.forecaster import WalkForwardQuantileForecast, evaluate_calibration
 from gridpilot_forecast.models import EnsembleQuantile, LEARLite, NaiveDayAhead, QuantileGBM
 from gridpilot_forecast.strategy import MLForecastDrivenLP, MLRiskAwareForecastLP
 
@@ -16,5 +17,9 @@ __all__ = [
     "WalkForwardQuantileForecast",
     "MLForecastDrivenLP",
     "MLRiskAwareForecastLP",
+    "RollingCQR",
+    "coverage",
+    "reliability_table",
+    "evaluate_calibration",
 ]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

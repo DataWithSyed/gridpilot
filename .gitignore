@@ -7,3 +7,5 @@ __pycache__/
 .DS_Store
 packages/*/results/*.json.bak
 .venv/
+packages/*/data/cache/
+packages/*/data/*.csv.gz

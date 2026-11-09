@@ -1,109 +1,175 @@
 {
   "window": {
-    "start": "2026-08-01",
-    "end": "2026-10-15",
-    "n_hours": 1824
-  },
-  "battery": "1 MW / 2 MWh",
-  "strategies": {
-    "threshold_arbitrage": {
-      "final_cash_eur": 9993.048765945285,
-      "n_days": 75,
-      "daily_pnl_p10": 0.0,
-      "daily_pnl_p50": 144.73056447368435,
-      "daily_pnl_p90": 301.47007789473673,
-      "cvar_5pct_loss_daily": 150.3712153739616,
-      "max_drawdown_eur": 294.6355263157893,
-      "cycles": 47.80391793628807,
-      "killed": false,
-      "capture_vs_pf_pct": 39.61027529260424,
-      "vs_threshold_pct": 100.0
-    },
-    "forecast_driven_lp": {
-      "final_cash_eur": 14145.422521312319,
-      "n_days": 75,
-      "daily_pnl_p10": 20.8578556578952,
-      "daily_pnl_p50": 183.09782153739593,
-      "daily_pnl_p90": 354.1389628947363,
-      "cvar_5pct_loss_daily": 16.743992924746333,
-      "max_drawdown_eur": 331.5058829639893,
-      "cycles": 83.1266499307478,
-      "killed": false,
-      "capture_vs_pf_pct": 56.06938316050371,
-      "vs_threshold_pct": 141.55262175360997
-    },
-    "risk_aware_forecast_lp": {
-      "final_cash_eur": 10107.119797351097,
-      "n_days": 75,
-      "daily_pnl_p10": 0.0,
-      "daily_pnl_p50": 113.83209605263164,
-      "daily_pnl_p90": 310.1683118421061,
-      "cvar_5pct_loss_daily": 3.916827255639094,
-      "max_drawdown_eur": 259.6509210526315,
-      "cycles": 51.76043282548474,
-      "killed": false,
-      "capture_vs_pf_pct": 40.06242809028632,
-      "vs_threshold_pct": 101.14150380006699
-    },
-    "ml_forecast_driven_lp": {
-      "final_cash_eur": 14358.419101246525,
-      "n_days": 75,
-      "daily_pnl_p10": 14.407276842105787,
-      "daily_pnl_p50": 198.67539605263119,
-      "daily_pnl_p90": 377.3255828947375,
-      "cvar_5pct_loss_daily": 20.89561050467546,
-      "max_drawdown_eur": 364.5511842105261,
-      "cycles": 97.69974722991668,
-      "killed": false,
-      "capture_vs_pf_pct": 56.91365535062137,
-      "vs_threshold_pct": 143.68406917194005
-    },
-    "ml_risk_aware_forecast_lp": {
-      "final_cash_eur": 14386.961456769377,
-      "n_days": 75,
-      "daily_pnl_p10": 12.225492960525663,
-      "daily_pnl_p50": 169.56747730263305,
-      "daily_pnl_p90": 382.80085394736983,
-      "cvar_5pct_loss_daily": 11.691451315789527,
-      "max_drawdown_eur": 364.5511842105261,
-      "cycles": 89.64047264542923,
-      "killed": false,
-      "capture_vs_pf_pct": 57.02679104986986,
-      "vs_threshold_pct": 143.9696912697739
-    },
-    "perfect_foresight_daily": {
-      "final_cash_eur": 25228.42543286014,
-      "n_days": 75,
-      "daily_pnl_p10": 163.07404894736902,
-      "daily_pnl_p50": 304.5927894736842,
-      "daily_pnl_p90": 484.1928913157874,
-      "cvar_5pct_loss_daily": -105.31838618420875,
-      "max_drawdown_eur": 359.1360526315784,
-      "cycles": 117.520529778393,
-      "killed": false,
-      "capture_vs_pf_pct": 100.0,
-      "vs_threshold_pct": 252.45974500629464
-    }
+    "start": "2025-11-01",
+    "end": "2026-10-30",
+    "n_hours": 8735,
+    "da_mean_eur_mwh": 110.88381797366915,
+    "da_min": -499.0,
+    "da_max": 697.31,
+    "neg_hour_pct": 5.174585002862049
   },
   "forecast_mae": {
     "naive": {
-      "n_days": 62,
-      "mae_eur_mwh": 48.39751176075269,
-      "mae_p50": 39.71677083333333
+      "n_days": 340,
+      "mae_eur_mwh": 33.97827389705882,
+      "mae_p50": 25.49729166666667
     },
-    "ensemble": {
-      "n_days": 55,
-      "mae_eur_mwh": 38.06837736596288,
-      "mae_p50": 35.07372792492101
+    "ensemble_fund_raw": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.26140019197196,
+      "mae_p50": 12.833076948614448
+    },
+    "ensemble_fund_cqr": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.26140019197196,
+      "mae_p50": 12.833076948614448
+    },
+    "calibration": {
+      "raw_coverage_80": 0.5,
+      "cqr_coverage_80": 0.7219337289812068,
+      "cqr_reliability": {
+        "0.1": 0.08827893175074183,
+        "0.5": 0.4068991097922849,
+        "0.9": 0.8102126607319485
+      },
+      "n_hours": 8088,
+      "nominal_80": 0.8
     }
   },
-  "source": "packages/forecast/results/forecast_eval.json (same walk-forward run)",
-  "ml_refit_every_days": 3,
-  "limitations": [
-    "Price-only LEAR-lite / QuantileGBM (no TSO load/wind features)",
-    "Hourly resample of 15-min Energy-Charts MTU",
+  "strategies": {
+    "threshold_arbitrage": {
+      "final_cash_eur": 32379.32483531855,
+      "n_days": 363,
+      "daily_pnl_p10": -59.317957894736715,
+      "daily_pnl_p50": 82.06602382271467,
+      "daily_pnl_p90": 249.05738631578936,
+      "cvar_5pct_loss_daily": 174.2205699081501,
+      "max_drawdown_eur": 307.4152631578945,
+      "cycles": 197.72065443213424,
+      "killed": false,
+      "capture_vs_pf_pct": 39.34270444902798,
+      "vs_threshold_pct": 100.0
+    },
+    "forecast_driven_lp": {
+      "final_cash_eur": 42654.569254810485,
+      "n_days": 363,
+      "daily_pnl_p10": -3.601987146814098,
+      "daily_pnl_p50": 81.96738421052629,
+      "daily_pnl_p90": 289.62273684210305,
+      "cvar_5pct_loss_daily": 63.31928012829873,
+      "max_drawdown_eur": 460.4389763157924,
+      "cycles": 355.9746003522084,
+      "killed": false,
+      "capture_vs_pf_pct": 51.827705491935546,
+      "vs_threshold_pct": 131.7339674985562
+    },
+    "risk_aware_forecast_lp": {
+      "final_cash_eur": 34517.93815789474,
+      "n_days": 363,
+      "daily_pnl_p10": 0.0,
+      "daily_pnl_p50": 38.03058815789518,
+      "daily_pnl_p90": 267.0436736842115,
+      "cvar_5pct_loss_daily": 5.475417546979209,
+      "max_drawdown_eur": 454.8600000000006,
+      "cycles": 232.690290858728,
+      "killed": false,
+      "capture_vs_pf_pct": 41.94124015997314,
+      "vs_threshold_pct": 106.60487312028027
+    },
+    "ml_forecast_driven_lp": {
+      "final_cash_eur": 65497.02673967725,
+      "n_days": 363,
+      "daily_pnl_p10": 13.65309578947281,
+      "daily_pnl_p50": 174.56337894736862,
+      "daily_pnl_p90": 344.01036526315875,
+      "cvar_5pct_loss_daily": 13.037798265550675,
+      "max_drawdown_eur": 458.45684210526815,
+      "cycles": 411.3857723429083,
+      "killed": false,
+      "capture_vs_pf_pct": 79.58257864902924,
+      "vs_threshold_pct": 202.2803967432784
+    },
+    "ml_risk_aware_forecast_lp": {
+      "final_cash_eur": 52664.63013455656,
+      "n_days": 363,
+      "daily_pnl_p10": 0.0,
+      "daily_pnl_p50": 129.41914342105883,
+      "daily_pnl_p90": 303.33856631578965,
+      "cvar_5pct_loss_daily": 1.3046329627949693,
+      "max_drawdown_eur": 454.8600000000006,
+      "cycles": 301.7283795013872,
+      "killed": false,
+      "capture_vs_pf_pct": 63.99049358932832,
+      "vs_threshold_pct": 162.6489446657989
+    },
+    "perfect_foresight_daily": {
+      "final_cash_eur": 82300.70934058152,
+      "n_days": 363,
+      "daily_pnl_p10": 37.76890526315802,
+      "daily_pnl_p50": 224.71502631578915,
+      "daily_pnl_p90": 400.80082947368214,
+      "cvar_5pct_loss_daily": -20.04191250911186,
+      "max_drawdown_eur": 494.3373684210528,
+      "cycles": 492.94675727146915,
+      "killed": false,
+      "capture_vs_pf_pct": 100.0,
+      "vs_threshold_pct": 254.17673085885343
+    }
+  },
+  "bootstrap_vs_threshold": {
+    "forecast_driven_lp": {
+      "n_days": 363,
+      "mean_diff": 28.122904323669236,
+      "ci_low": 19.84771646913662,
+      "ci_high": 37.79983173884681,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "risk_aware_forecast_lp": {
+      "n_days": 363,
+      "mean_diff": 5.707942624176836,
+      "ci_low": -5.6303854394740265,
+      "ci_high": 16.14659205827487,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_forecast_driven_lp": {
+      "n_days": 363,
+      "mean_diff": 91.04978444726913,
+      "ci_low": 77.51380764139351,
+      "ci_high": 104.49427051779583,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_risk_aware_forecast_lp": {
+      "n_days": 363,
+      "mean_diff": 55.698829612225914,
+      "ci_low": 44.32433869302408,
+      "ci_high": 66.83634959132611,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "perfect_foresight_daily": {
+      "n_days": 363,
+      "mean_diff": 137.1420898905316,
+      "ci_low": 119.7682601823151,
+      "ci_high": 151.83175750450246,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    }
+  },
+  "assumptions": [
+    "ML lookback_days=90, refit_every_days=7 (ASSUMED compute tradeoff)",
+    "CQR alpha=0.20, window=60d, delay=2",
+    "Day-ahead TSO forecasts from Energy-Charts public_power_forecast (ex-ante)",
+    "Hourly mean of native 15-min MTU where applicable",
     "No fees/slippage; paper trading only",
-    "Short sample (~2.5 months) limits ML train history"
+    "1 MW / 2 MWh battery; max 2 cycles/day; drawdown stop 20k EUR"
   ],
   "attribution": "Energy-Charts / SMARD \u2014 CC BY 4.0",
   "paper_trading_only": true

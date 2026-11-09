@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
+import pytest
 
 from gridpilot_backtest.harness import BacktestHarness, StrategyResult, comparison_table
 from gridpilot_backtest.metrics import historical_cvar, max_drawdown, summarise
@@ -66,3 +68,17 @@ def test_harness_runs():
     prices = pd.Series(range(10), index=pd.date_range("2026-01-01", periods=10, freq="h", tz="UTC"))
     out = h.run(prices, {"x": S()})
     assert out["x"].metrics["final_cash_eur"] == 110.0
+
+
+def test_block_bootstrap_ci():
+    from gridpilot_backtest.metrics import block_bootstrap_mean_diff_ci
+
+    idx = pd.date_range("2026-01-01", periods=60, freq="D")
+    rng = np.random.default_rng(0)
+    noise = rng.normal(0, 2.0, size=60)
+    a = pd.Series(np.arange(60, dtype=float) + 5.0 + noise, index=idx)
+    b = pd.Series(np.arange(60, dtype=float), index=idx)
+    ci = block_bootstrap_mean_diff_ci(a, b, block=5, n_boot=200, seed=1)
+    assert ci["mean_diff"] == pytest.approx(5.0, abs=1.0)
+    assert ci["ci_low"] < ci["ci_high"]
+    assert ci["ci_low"] < ci["mean_diff"] < ci["ci_high"]

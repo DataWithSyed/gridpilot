@@ -49,8 +49,8 @@ def main(argv: list[str] | None = None) -> None:
             return _fetch(start, end, cache_dir=cache)
 
     ap = argparse.ArgumentParser(description="GridPilot walk-forward backtest (paper trading only)")
-    ap.add_argument("--start", default="2026-08-01")
-    ap.add_argument("--end", default="2026-10-15")
+    ap.add_argument("--start", default="2025-11-01")
+    ap.add_argument("--end", default="2026-10-30")
     ap.add_argument("--cache", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--skip-ml", action="store_true", help="Skip ML strategies (faster / less RAM)")
@@ -73,8 +73,8 @@ def main(argv: list[str] | None = None) -> None:
             "threshold_arbitrage": ThresholdArbitrage(),
             "forecast_driven_lp": ForecastDrivenLP(),
             "risk_aware_forecast_lp": RiskAwareForecastLP(),
-            "ml_forecast_driven_lp": MLForecastDrivenLP(lookback_days=45, refit_every_days=1),
-            "ml_risk_aware_forecast_lp": MLRiskAwareForecastLP(lookback_days=45, refit_every_days=1),
+            "ml_forecast_driven_lp": MLForecastDrivenLP(lookback_days=90, refit_every_days=7),
+            "ml_risk_aware_forecast_lp": MLRiskAwareForecastLP(lookback_days=90, refit_every_days=7),
             "perfect_foresight_daily": PerfectForesightDaily(),
         }
 

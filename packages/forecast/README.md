@@ -9,25 +9,30 @@ Probabilistic **day-ahead DE-LU price** forecasting for GridPilot paper trading.
 | Model | Role |
 |---|---|
 | Naive | Lago-style D-1 / D-7 benchmark |
-| LEAR-lite | 24 hourly LassoLarsIC on asinh-scaled **price lags + calendar** |
-| Quantile GBM | `HistGradientBoostingRegressor` with quantile loss → P10 / P50 / P90 |
+| LEAR-lite | 24 hourly LassoLarsIC on asinh-scaled **price lags + calendar** (+ optional day-ahead fundamentals) |
+| Quantile GBM | `HistGradientBoostingRegressor` quantile loss → P10 / P50 / P90 |
 | Ensemble | Mean of LEAR point and GBM quantiles (equal weights, ASSUMED) |
+| Rolling CQR | Conformalised P10–P90 band (delay-aware; ideas linked from `de-wind-probabilistic-forecasting`) |
 
-Ideas linked from [de-day-ahead-price-forecasting](https://github.com/DataWithSyed/de-day-ahead-price-forecasting) and conformal ideas from [de-wind-probabilistic-forecasting](https://github.com/DataWithSyed/de-wind-probabilistic-forecasting) — **not a copy** of those pipelines.
+### Fundamentals (ex-ante)
 
-### Honest limitations
+Day-ahead TSO forecasts of **load / solar / wind** from Energy-Charts `public_power_forecast` (CC BY 4.0) enter residual-load features for delivery day D. Same-day realised prices never enter features (leakage tests in `tests/`). If day-ahead forecasts are unavailable, lagged actuals (D-1) may be used and must be labelled.
 
-- **Price-only features** in this package (no TSO load/solar/wind day-ahead forecasts). The prior DE forecast repo uses those and is stronger; we link it instead of duplicating the data stack.
-- Short demo window (Aug–mid Oct 2026) → limited train history; ML may not beat the rolling hour-of-day climatology in `gridpilot-strategies`.
-- Paper trading only. No orders to any exchange.
+### Measured (real run 2025-11-01 → 2026-10-30)
+
+- Ensemble + fundamentals MAE **16.26** €/MWh vs naive **33.98** (337–340 days)
+- Raw 80% interval coverage **50.0%** → CQR **72.2%** (still short of nominal 80% — honest gap)
+- Reliability after CQR: P10 **8.8%**, P50 **40.7%**, P90 **81.0%** (nominal 10/50/90)
 
 ## Install (from umbrella clone)
 
 ```bash
 pip install -e packages/forecast
-pip install -e ../gridpilot-core ../gridpilot-strategies   # sibling checkouts
+pip install -e ../gridpilot-core ../gridpilot-strategies
 pytest -q packages/forecast
-python packages/forecast/scripts/run_forecast_eval.py
+# optional rebuild of gitignored cache (rate-limited API):
+python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
+python packages/forecast/scripts/run_long_window_eval.py
 ```
 
 ## Licence

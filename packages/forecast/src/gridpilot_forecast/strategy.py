@@ -7,7 +7,7 @@ from gridpilot_forecast.forecaster import WalkForwardQuantileForecast
 
 try:
     from gridpilot_strategies.forecast_lp import ForecastDrivenLP, RiskAwareForecastLP
-except Exception:  # pragma: no cover - optional until strategies is on path
+except Exception:  # pragma: no cover
     ForecastDrivenLP = None  # type: ignore
     RiskAwareForecastLP = None  # type: ignore
 
@@ -22,9 +22,12 @@ class MLForecastDrivenLP:
 
     name: str = "ml_forecast_driven_lp"
     dt_h: float = 1.0
-    lookback_days: int = 45
-    refit_every_days: int = 1
+    lookback_days: int = 90
+    refit_every_days: int = 7
     price_quantile: float = 0.50
+    use_fundamentals: bool = True
+    calibrate: bool = True
+    fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -33,11 +36,14 @@ class MLForecastDrivenLP:
         fc = _ml_forecast(
             lookback_days=self.lookback_days,
             refit_every_days=self.refit_every_days,
+            use_fundamentals=self.use_fundamentals,
+            calibrate=self.calibrate,
+            fundamentals=self.fundamentals,
         )
         self._inner = ForecastDrivenLP(
             name=self.name,
             dt_h=self.dt_h,
-            forecast=fc,  # duck-typed
+            forecast=fc,
             price_quantile=self.price_quantile,
         )
 
@@ -51,9 +57,12 @@ class MLRiskAwareForecastLP:
 
     name: str = "ml_risk_aware_forecast_lp"
     dt_h: float = 1.0
-    lookback_days: int = 45
-    refit_every_days: int = 1
+    lookback_days: int = 90
+    refit_every_days: int = 7
     mode: str = "pessimistic_path"
+    use_fundamentals: bool = True
+    calibrate: bool = True
+    fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -62,6 +71,9 @@ class MLRiskAwareForecastLP:
         fc = _ml_forecast(
             lookback_days=self.lookback_days,
             refit_every_days=self.refit_every_days,
+            use_fundamentals=self.use_fundamentals,
+            calibrate=self.calibrate,
+            fundamentals=self.fundamentals,
         )
         self._inner = RiskAwareForecastLP(
             name=self.name,

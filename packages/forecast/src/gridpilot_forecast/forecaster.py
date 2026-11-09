@@ -1,4 +1,4 @@
-"""Walk-forward quantile forecaster with the same forecast_day interface as strategies pack."""
+"""Walk-forward quantile forecaster with optional fundamentals + conformal calibration."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -6,12 +6,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from gridpilot_forecast.conformal import RollingCQR, coverage, reliability_table
 from gridpilot_forecast.features import daily_panel, to_berlin
 from gridpilot_forecast.models import EnsembleQuantile, NaiveDayAhead
 
 
 def _as_naive_day(ts) -> pd.Timestamp:
-    """Calendar date as tz-naive midnight (panel index convention)."""
     t = pd.Timestamp(ts)
     if t.tzinfo is not None:
         t = t.tz_convert("Europe/Berlin")
@@ -20,28 +20,51 @@ def _as_naive_day(ts) -> pd.Timestamp:
 
 @dataclass
 class WalkForwardQuantileForecast:
-    """Causal day-ahead P10/P50/P90 forecast with daily (or weekly) refits.
+    """Causal day-ahead P10/P50/P90 forecast with daily/weekly refits.
 
     Implements ``forecast_day(history, remaining_index) -> {q: Series}`` so it can
-    plug into ``ForecastDrivenLP`` / ``RiskAwareForecastLP`` from gridpilot-strategies.
+    plug into ``ForecastDrivenLP`` / ``RiskAwareForecastLP``.
 
-    Training uses a rolling lookback of completed **calendar days** only (ex-ante).
+    When ``fundamentals`` panels are set, day-ahead residual-load features are used.
+    When ``calibrate`` is True, rolling CQR widens/narrows P10–P90 using past residuals only.
     """
 
-    lookback_days: int = 45  # ASSUMED; short sample in umbrella demos
-    refit_every_days: int = 1  # 1 = daily; raise to 7 to save compute
-    min_train_days: int = 14
+    lookback_days: int = 90  # ASSUMED; longer window than the short demo
+    refit_every_days: int = 7  # ASSUMED compute tradeoff on 12-month runs
+    min_train_days: int = 21
     quantiles: tuple[float, ...] = (0.10, 0.50, 0.90)
+    use_fundamentals: bool = False
+    calibrate: bool = True
+    conformal_window_days: int = 60
+    conformal_delay: int = 2
     model_name: str = "ensemble_lear_qgbm"
+    fundamentals: dict | None = field(default=None, repr=False)
     _panel_cache_key: object | None = field(default=None, repr=False)
     _panel: pd.DataFrame | None = field(default=None, repr=False)
     _model: EnsembleQuantile | None = field(default=None, repr=False)
-    _model_day: pd.Timestamp | None = field(default=None, repr=False)
     _last_fit_day: pd.Timestamp | None = field(default=None, repr=False)
     _naive: NaiveDayAhead = field(default_factory=NaiveDayAhead, repr=False)
+    _cqr: RollingCQR | None = field(default=None, repr=False)
+    _last_raw_pred: dict | None = field(default=None, repr=False)
+    _last_pred_day: pd.Timestamp | None = field(default=None, repr=False)
+    calibration_log: list = field(default_factory=list, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.calibrate:
+            self._cqr = RollingCQR(
+                alpha=0.20,
+                window_days=self.conformal_window_days,
+                delay=self.conformal_delay,
+            )
+
+    def set_fundamentals(self, fund: dict[str, pd.DataFrame] | None) -> None:
+        self.fundamentals = fund
+        self.use_fundamentals = fund is not None
+        # Force refit on next call
+        self._model = None
+        self._last_fit_day = None
 
     def _ensure_panel(self, history: pd.Series) -> pd.DataFrame:
-        # Invalidate only when a new calendar day appears in history (not every hour).
         hist = to_berlin(history)
         last_day = hist.index[-1].date() if len(hist) else None
         key = (len(hist), str(last_day))
@@ -69,14 +92,37 @@ class WalkForwardQuantileForecast:
             self._model = None
             self._last_fit_day = delivery_day
             return
-        m = EnsembleQuantile()
-        m.fit(panel, train)
+        fund = self.fundamentals if self.use_fundamentals else None
+        m = EnsembleQuantile(use_fundamentals=bool(fund))
+        m.fit(panel, train, fund=fund)
         self._model = m
         self._last_fit_day = delivery_day
+
+    def _observe_realized(self, panel: pd.DataFrame, delivery_day: pd.Timestamp) -> None:
+        """Feed CQR with recently realised days (ex-ante delay handled inside RollingCQR)."""
+        if self._cqr is None or self._last_raw_pred is None or self._last_pred_day is None:
+            return
+        # When forecasting day D, outcomes through D-1 may be in the panel
+        for d in list(panel.index):
+            d = pd.Timestamp(d).normalize()
+            if d >= delivery_day:
+                continue
+            if d in self._cqr._day_scores:
+                continue
+            # Recompute a raw pred for that past day if we have a model trained as-of d
+            # Simpler: only observe the immediately previous predicted day when its
+            # realised prices are now in the panel.
+        prev = _as_naive_day(delivery_day) - pd.Timedelta(days=1)
+        if prev in panel.index and prev == self._last_pred_day and prev not in self._cqr._day_scores:
+            y = panel.loc[prev].to_numpy(float)
+            raw = self._last_raw_pred
+            if 0.10 in raw and 0.90 in raw and not np.isnan(y).any():
+                self._cqr.observe_day(prev, y, raw[0.10], raw[0.90])
 
     def predict_quantiles_for_day(self, history: pd.Series, day: pd.Timestamp) -> dict[float, np.ndarray]:
         panel = self._ensure_panel(history)
         day = _as_naive_day(day)
+        self._observe_realized(panel, day)
         self._maybe_refit(panel, day)
         pred = None
         if self._model is not None:
@@ -87,6 +133,10 @@ class WalkForwardQuantileForecast:
                 last = float(to_berlin(history).iloc[-1]) if len(history) else 0.0
                 naive = np.full(24, last, dtype=float)
             pred = {q: naive.copy() for q in self.quantiles}
+        self._last_raw_pred = {q: np.asarray(v, float).copy() for q, v in pred.items()}
+        self._last_pred_day = day
+        if self._cqr is not None and self.calibrate:
+            pred = self._cqr.calibrate(day, pred)
         return pred
 
     def forecast_day(
@@ -94,7 +144,6 @@ class WalkForwardQuantileForecast:
         history: pd.Series,
         remaining_index: pd.DatetimeIndex,
     ) -> dict[float, pd.Series]:
-        """Interface compatible with RollingQuantilePriceForecast."""
         if len(remaining_index) == 0:
             return {q: pd.Series(dtype=float) for q in self.quantiles}
         ts0 = remaining_index[0]
@@ -111,3 +160,41 @@ class WalkForwardQuantileForecast:
                 vals.append(float(arr[h]) if h < len(arr) else float(arr[-1]))
             out[q] = pd.Series(vals, index=remaining_index, dtype=float)
         return out
+
+
+def evaluate_calibration(
+    y_by_day: dict[pd.Timestamp, np.ndarray],
+    pred_by_day: dict[pd.Timestamp, dict[float, np.ndarray]],
+) -> dict:
+    """Coverage + reliability for a set of day-ahead quantile forecasts."""
+    ys, los, his, p10s, p50s, p90s = [], [], [], [], [], []
+    for d, y in y_by_day.items():
+        if d not in pred_by_day:
+            continue
+        p = pred_by_day[d]
+        ys.append(np.asarray(y, float))
+        los.append(np.asarray(p[0.10], float))
+        his.append(np.asarray(p[0.90], float))
+        p10s.append(p[0.10])
+        p50s.append(p[0.50])
+        p90s.append(p[0.90])
+    if not ys:
+        return {"n_days": 0}
+    y = np.concatenate(ys)
+    lo = np.concatenate(los)
+    hi = np.concatenate(his)
+    rel = reliability_table(
+        y,
+        {
+            0.10: np.concatenate(p10s),
+            0.50: np.concatenate(p50s),
+            0.90: np.concatenate(p90s),
+        },
+    )
+    return {
+        "n_days": len(ys),
+        "n_hours": int(len(y)),
+        "coverage_80": coverage(y, lo, hi),
+        "reliability": {str(k): v for k, v in rel.items()},
+        "nominal_80": 0.80,
+    }

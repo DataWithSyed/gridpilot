@@ -1,9 +1,8 @@
-"""Price-lag + calendar feature builders (ex-ante / causal).
+"""Price-lag + calendar + optional day-ahead fundamentals (ex-ante / causal).
 
-ASSUMED feature set is intentionally smaller than the full LEAR design in
-de-day-ahead-price-forecasting (which also uses TSO day-ahead load/solar/wind
-forecasts). This package stays price-only so it runs on the Energy-Charts DA
-cache alone. Documented as a limitation — not claimed equivalent to the prior repo.
+Ex-ante rule (SDAC day-ahead, gate closure ~12:00 CET on D-1): for delivery day D
+we may use prices through D-1 and TSO day-ahead load/solar/wind forecasts for day D.
+Same-day realised prices or same-day actual generation must never enter features.
 """
 from __future__ import annotations
 
@@ -64,7 +63,7 @@ def daily_panel(prices: pd.Series) -> pd.DataFrame:
 def calendar_row(day: pd.Timestamp) -> dict[str, float]:
     hol = german_national_holidays(day.year)
     return {
-        "dow": float(day.dayofweek),
+        "dow": float(day.day_of_week),
         "month": float(day.month),
         "holiday": 1.0 if day.date() in hol else 0.0,
     }
@@ -82,11 +81,9 @@ def lear_row(panel: pd.DataFrame, day: pd.Timestamp) -> np.ndarray | None:
         if prev not in panel.index or panel.loc[prev].isna().any():
             return None
         parts.append(panel.loc[prev].to_numpy(float))
-    # D-1 summary stats
     d1 = panel.loc[day - pd.Timedelta(days=1)].to_numpy(float)
     parts.append(np.array([d1.mean(), d1.min(), d1.max()], dtype=float))
     cal = calendar_row(day)
-    # one-hot dow 0..6 + month + holiday
     dow = np.zeros(7, dtype=float)
     dow[int(cal["dow"])] = 1.0
     parts.append(dow)
@@ -94,8 +91,37 @@ def lear_row(panel: pd.DataFrame, day: pd.Timestamp) -> np.ndarray | None:
     return np.concatenate(parts)
 
 
+def lear_row_with_fundamentals(
+    price_panel: pd.DataFrame,
+    fund: dict[str, pd.DataFrame],
+    day: pd.Timestamp,
+) -> np.ndarray | None:
+    """LEAR-lite + day-ahead residual-load / renewables summaries for day D (ex-ante)."""
+    base = lear_row(price_panel, day)
+    if base is None:
+        return None
+    day = pd.Timestamp(day).normalize()
+    rl = fund.get("residual_load_fc")
+    load = fund.get("load_fc")
+    wind = fund.get("wind_fc")
+    solar = fund.get("solar_fc")
+    extras: list[float] = []
+    for pan, label in ((rl, "rl"), (load, "load"), (wind, "wind"), (solar, "solar")):
+        if pan is None or day not in pan.index or pan.loc[day].isna().any():
+            return None
+        row = pan.loc[day].to_numpy(float)
+        extras.extend([float(row.mean()), float(row.min()), float(row.max()), float(row[12]), float(row[19])])
+        # D-1 profile of same series (already known)
+        prev = day - pd.Timedelta(days=1)
+        if prev in pan.index and not pan.loc[prev].isna().any():
+            extras.append(float(pan.loc[prev].mean()))
+        else:
+            extras.append(float(row.mean()))
+    return np.concatenate([base, np.asarray(extras, float)])
+
+
 def gbm_frame_for_day(panel: pd.DataFrame, day: pd.Timestamp) -> pd.DataFrame | None:
-    """Long 24-row feature table for QuantileGBM for delivery day ``day`` (ex-ante)."""
+    """Long 24-row feature table for QuantileGBM for delivery day ``day`` (price-only, ex-ante)."""
     day = pd.Timestamp(day).normalize()
     rows = []
     cal = calendar_row(day)
@@ -107,7 +133,6 @@ def gbm_frame_for_day(panel: pd.DataFrame, day: pd.Timestamp) -> pd.DataFrame | 
         return None
     if p1.isna().any() or p2.isna().any() or p7.isna().any():
         return None
-    # 7-day mean of daily means ending D-1
     window_days = [day - pd.Timedelta(days=i) for i in range(1, 8)]
     means = []
     for d in window_days:
@@ -135,6 +160,52 @@ def gbm_frame_for_day(panel: pd.DataFrame, day: pd.Timestamp) -> pd.DataFrame | 
     return pd.DataFrame(rows)
 
 
+def gbm_frame_for_day_with_fundamentals(
+    price_panel: pd.DataFrame,
+    fund: dict[str, pd.DataFrame],
+    day: pd.Timestamp,
+) -> pd.DataFrame | None:
+    """GBM long frame with day-ahead residual load / renewables (ex-ante for day D)."""
+    base = gbm_frame_for_day(price_panel, day)
+    if base is None:
+        return None
+    day = pd.Timestamp(day).normalize()
+    rl = fund.get("residual_load_fc")
+    load = fund.get("load_fc")
+    wind = fund.get("wind_fc")
+    solar = fund.get("solar_fc")
+    for pan in (rl, load, wind, solar):
+        if pan is None or day not in pan.index or pan.loc[day].isna().any():
+            return None
+    rl_d = rl.loc[day]
+    load_d = load.loc[day]
+    wind_d = wind.loc[day]
+    solar_d = solar.loc[day]
+    prev = day - pd.Timedelta(days=1)
+    rl_d1 = rl.loc[prev] if prev in rl.index else rl_d
+    rows = []
+    for h in range(24):
+        row = base.iloc[h].to_dict()
+        row.update(
+            {
+                "load": float(load_d.iloc[h]),
+                "solar": float(solar_d.iloc[h]),
+                "wind": float(wind_d.iloc[h]),
+                "resload": float(rl_d.iloc[h]),
+                "res_share": float((solar_d.iloc[h] + wind_d.iloc[h]) / max(load_d.iloc[h], 1.0)),
+                "resload_mean": float(rl_d.mean()),
+                "resload_max": float(rl_d.max()),
+                "resload_min": float(rl_d.min()),
+                "resload_d1": float(rl_d1.iloc[h]),
+                "resload_delta": float(rl_d.iloc[h] - rl_d1.iloc[h]),
+                "solar_sum": float(solar_d.sum()),
+                "wind_mean": float(wind_d.mean()),
+            }
+        )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 GBM_COLS = [
     "hour",
     "dow",
@@ -149,4 +220,19 @@ GBM_COLS = [
     "p_d1_h12",
     "p_d1_h19",
     "p_7d_mean",
+]
+
+GBM_COLS_FUND = GBM_COLS + [
+    "load",
+    "solar",
+    "wind",
+    "resload",
+    "res_share",
+    "resload_mean",
+    "resload_max",
+    "resload_min",
+    "resload_d1",
+    "resload_delta",
+    "solar_sum",
+    "wind_mean",
 ]
