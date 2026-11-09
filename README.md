@@ -66,6 +66,7 @@ flowchart TB
 - [x] **Strategy pack** ([`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies)): forecast-driven + risk-aware LP (climatology baseline)
 - [x] **Backtest harness** (`packages/backtest`): walk-forward comparison table, CLI, equity figure
 - [x] **Dashboard** (`packages/dashboard`): Streamlit ops view (testable package + thin `app.py`)
+- [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, forecast accuracy, next-day schedule
 
 ## Repo layout
 
@@ -74,6 +75,8 @@ gridpilot/
   packages/forecast/     # probabilistic DA price forecasts + ML strategies
   packages/backtest/     # comparison harness + CLI
   packages/dashboard/    # Streamlit UI
+  packages/live/         # near-live paper pilot + accuracy check
+  results/live/          # committed live-pilot summaries
   docs/                  # methods, assumptions, limitations
 ```
 
@@ -106,6 +109,21 @@ Honest takeaway: with **day-ahead fundamentals** and a **12-month** window, ML c
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
+
+### Near-live paper pilot (2026-11-10 Asia/Karachi)
+
+Ran against the latest published Energy-Charts DE-LU day-ahead curve (**2026-10-28 → 2026-11-10**, 14 days / 336 h). Decisions for each delivery day were locked from information available **before** that day (ex-ante P50 forecast → daily LP); fills settled at realised DA. Paper trading only — **no real orders**.
+
+| Check | Result |
+|---|---|
+| Forecast MAE | ML+fund+CQR **39.20** vs naive **75.68** €/MWh |
+| Forecast RMSE | ML **46.89** vs naive **84.12** €/MWh |
+| P10–P90 coverage | **52.4%** (nominal 80%) |
+| ML ex-ante LP cash | **3,352** € (**87.0%** of PF **3,853** €) |
+| Threshold cash | 1,051 € |
+| Next delivery day | **2026-11-11** (DA not yet published): forecast-only schedule, 4h charge / 4h discharge / 16h hold, P50 mean **351.48** €/MWh |
+
+What this validates: ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP. What it does **not**: real orders, SDAC bids before gate closure, intraday/imbalance/ancillary, fees/slippage. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
 
 ### Module highlights
 
