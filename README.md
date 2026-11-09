@@ -54,6 +54,13 @@ docs/assumptions.md
 docs/limitations.md
 ```
 
+## Related GridPilot modules
+
+- [gridpilot](https://github.com/DataWithSyed/gridpilot) — umbrella
+- [gridpilot-data](https://github.com/DataWithSyed/gridpilot-data) — pluggable live/replay adapters
+- [gridpilot-risk](https://github.com/DataWithSyed/gridpilot-risk) — bootstrap VaR/CVaR
+- [gridpilot-strategies](https://github.com/DataWithSyed/gridpilot-strategies) — forecast-driven LP (beats threshold by +41.6% cash on the 2026-08-01→2026-10-15 window)
+
 ## Related work (not duplicated)
 
 - [gridpilot](https://github.com/DataWithSyed/gridpilot) — umbrella roadmap
