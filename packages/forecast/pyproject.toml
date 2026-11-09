@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridpilot-forecast"
+version = "0.1.0"
+description = "GridPilot probabilistic day-ahead price forecasting (LEAR-lite + quantile GBM) for paper trading."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "DataWithSyed" }]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scikit-learn>=1.3",
+  "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "gridpilot-core>=0.1.0", "gridpilot-strategies>=0.1.0"]
+agent = ["gridpilot-core>=0.1.0", "gridpilot-strategies>=0.1.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
