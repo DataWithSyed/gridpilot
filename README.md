@@ -30,13 +30,13 @@ flowchart TB
   end
 
   subgraph brain [Decision modules]
-    FC["packages/forecast<br/>LEAR+GBM + TSO DA features<br/>+ CQR calibration"]
+    FC["packages/forecast<br/>LEAR+GBM + TSO DA features<br/>+ Mondrian CQR"]
     STR[gridpilot-strategies]
     RSK[gridpilot-risk]
   end
 
   subgraph eval [Evaluation in this repo]
-    BT[packages/backtest]
+    BT["packages/backtest<br/>costs + equity figure"]
     UI[packages/dashboard]
   end
 
@@ -61,10 +61,10 @@ flowchart TB
 - [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
 - [x] **Core runtime** ([`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core)): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
 - [x] **Data adapters** ([`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data)): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
-- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling CQR; links `de-day-ahead-price-forecasting` / `de-wind-probabilistic-forecasting`
+- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / **Mondrian** CQR; links `de-day-ahead-price-forecasting` / `de-wind-probabilistic-forecasting`
 - [x] **Risk engine** ([`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk)): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
 - [x] **Strategy pack** ([`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies)): forecast-driven + risk-aware LP (climatology baseline)
-- [x] **Backtest harness** (`packages/backtest`): walk-forward comparison table, CLI, equity figure
+- [x] **Backtest harness** (`packages/backtest`): walk-forward table, **fees/slippage/degradation** cost layer, equity + coverage figures, cost-sensitivity sweep
 - [x] **Dashboard** (`packages/dashboard`): Streamlit ops view (testable package + thin `app.py`)
 - [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, forecast accuracy, next-day schedule
 
@@ -84,27 +84,41 @@ Sibling module repos (unchanged, linked): `gridpilot-core`, `gridpilot-data`, `g
 
 ## Measured results so far (real runs)
 
-### Primary window: **2025-11-01 → 2026-10-30** (~12 months)
+### Primary window: **2025-11-01 → 2026-10-30** (~12 months) — **net of ASSUMED costs**
 
-DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts via Energy-Charts (CC BY 4.0), hourly means, illustrative **1 MW / 2 MWh** BESS. Paper trading only; no fees/slippage. ML lookback **90** days, refit every **7** days (ASSUMED). CQR α=0.20, window 60 d, delay 2.
+DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts via Energy-Charts (CC BY 4.0), hourly means, illustrative **1 MW / 2 MWh** BESS. Paper trading only. ML lookback **90** days, refit every **7** days (ASSUMED).
+
+**Base costs (ASSUMED, labelled in `docs/assumptions.md`):** trading fee **0.05** €/MWh · slippage **0.50** €/MWh · degradation **5** €/MWh throughput. Strategies are **not** re-optimised for fees (accounting layer on fills).
 
 | Metric | Value |
 |---|---|
 | Hours / DA mean | **8,735** h · **110.88** €/MWh (min −499 · max 697.31 · **5.17%** negative) |
-| Forecast MAE | Ensemble+fundamentals **16.26** vs naive **33.98** €/MWh (337–340 days) |
-| 80% coverage | Raw **50.0%** → CQR **72.2%** (still short of nominal 80%) |
-| Reliability (CQR) | P10 **8.8%** · P50 **40.7%** · P90 **81.0%** (nominal 10/50/90) |
+| Forecast MAE | Ensemble+fundamentals **16.26** vs naive **33.98** €/MWh |
+| 80% coverage | Raw **50.0%** → rolling CQR **72.2%** → **Mondrian CQR 78.2%** (nominal 80%; still slightly short) |
+| Reliability (Mondrian) | P10 **8.2%** · P50 **46.5%** · P90 **86.4%** (rolling CQR was 8.8 / 40.7 / 81.0) |
 
-| Strategy | Final cash € | Capture of PF | Daily PnL P10 / P50 / P90 € | CVaR₅% loss € | Max DD € | Δ€/day vs thr. (90% CI) |
+| Strategy (net of base costs) | Final cash € | Capture of PF | Daily PnL P10 / P50 / P90 € | CVaR₅% loss € | Max DD € | Δ€/day vs thr. (90% CI) |
 |---|---:|---:|---|---:|---:|---|
-| Threshold | 32,379 | 39.3% | −59.32 / 82.07 / 249.06 | 174.22 | 307 | — |
-| ForecastDrivenLP (climatology) | 42,655 | 51.8% | −3.60 / 81.97 / 289.62 | 63.32 | 460 | +28.1 [19.8, 37.8] |
-| RiskAwareForecastLP (climatology) | 34,518 | 41.9% | 0.00 / 38.03 / 267.04 | 5.48 | 455 | +5.7 [−5.6, 16.1] *(CI crosses 0)* |
-| **MLForecastDrivenLP** (fund+CQR) | **65,497** | **79.6%** | 13.65 / 174.56 / 344.01 | 13.04 | 458 | **+91.0 [77.5, 104.5]** |
-| MLRiskAwareForecastLP (fund+CQR) | 52,665 | 64.0% | 0.00 / 129.42 / 303.34 | **1.30** | 455 | +55.7 [44.3, 66.8] |
-| Perfect foresight (oracle) | 82,301 | 100% | 37.77 / 224.72 / 400.80 | n/a | 494 | +137.1 [119.8, 151.8] |
+| Threshold | 31,944 | 44.2% | −61.74 / 76.78 / 247.22 | 175.43 | 309 | — |
+| ForecastDrivenLP (climatology) | 33,932 | 47.0% | −54.25 / 51.62 / 300.21 | 178.83 | 434 | +5.5 [−5.5, 15.9] *(CI crosses 0)* |
+| RiskAwareForecastLP (climatology) | 26,860 | 37.2% | −5.59 / 26.01 / 238.50 | 114.29 | 455 | −14.0 [−25.0, −4.5] |
+| **MLForecastDrivenLP** (fund+rolling CQR) | **57,153** | **79.2%** | 0.00 / 135.30 / 362.07 | 79.79 | 466 | **+69.3 [53.3, 82.1]** |
+| ML MondrianForecastDrivenLP | 55,501 | 76.9% | −5.48 / 125.88 / 363.69 | 81.99 | 460 | +64.7 [49.2, 79.0] |
+| MLRiskAwareForecastLP | 45,566 | 63.1% | 0.00 / 93.47 / 292.63 | **43.06** | 455 | +37.4 [25.1, 48.1] |
+| Perfect foresight (oracle) | 72,192 | 100% | 26.91 / 177.22 / 396.57 | 9.23 | 495 | +110.6 [91.7, 124.9] |
 
-Honest takeaway: with **day-ahead fundamentals** and a **12-month** window, ML captures **~80%** of perfect-foresight cash and roughly **doubles** the simple threshold rule; the 90% block-bootstrap CI on the daily edge vs threshold excludes zero. CQR lifts interval coverage but does **not** yet hit the nominal 80%. Risk-aware ML trades ~20 pp of capture for near-zero CVaR₅%. Still paper trading: no fees, no slippage, no live orders.
+**Gross (zero fee/slip/deg) for honesty:** threshold **36,334** € · ML **68,822** € · Mondrian-ML **67,508** € · PF **85,231** €. Prior README cash (~65,497 ML) matched the fee=0 / slip=0 / deg=5 case (± rounding), not a zero-cost world.
+
+**Cost sensitivity (ML vs threshold final cash €):**
+
+| Scenario | fee / slip / deg | Threshold | ML | ML / thr |
+|---|---|---:|---:|---:|
+| zero | 0 / 0 / 0 | 36,334 | 68,822 | **1.89×** |
+| fee_deg | 0.05 / 0 / 5 | 32,340 | 58,204 | **1.80×** |
+| **base** | **0.05 / 0.50 / 5** | **31,944** | **57,153** | **1.79×** |
+| stress | 0.10 / 1.0 / 10 | 27,555 | 45,483 | **1.65×** |
+
+Honest takeaway: **the ML edge survives ASSUMED fees, slippage and degradation** — even under the stress case ML stays ~1.65× threshold, and the base 90% block-bootstrap CI on Δ€/day vs threshold **excludes zero**. Mondrian/regime-conditional CQR lifts 80% coverage **72.2 → 78.2%** and moves P50 reliability **40.7 → 46.5%** (closer to nominal 50%), but still short of exact 80%/50%. Mondrian-calibrated ML cash is slightly **below** rolling-CQR ML on this window (55.5k vs 57.2k net) — calibration quality ≠ automatic PnL gain. Equity curve: [`packages/backtest/figures/equity_curve_net.png`](packages/backtest/figures/equity_curve_net.png). Coverage plot: [`packages/backtest/figures/coverage_calibration.png`](packages/backtest/figures/coverage_calibration.png). Optional FCR overlay remains a **link only** to [`de-bess-reserve-revenue-stacking`](https://github.com/DataWithSyed/de-bess-reserve-revenue-stacking) (not co-optimised here). Still **paper trading only**.
 
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
@@ -133,9 +147,9 @@ What this validates: ex-ante DA forecast skill, interval coverage, paper capture
 | [`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data) | Energy-Charts adapters + optional ENTSO-E env token |
 | [`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk) | Block-bootstrap VaR/CVaR hooks |
 | [`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies) | Climatology ForecastDrivenLP / RiskAwareForecastLP |
-| `packages/forecast` | Fundamentals + CQR; long-window eval script |
-| `packages/backtest` | Comparison CSV/JSON + bootstrap CI helper |
-| `packages/dashboard` | Streamlit view of long-window table, calibration, bootstrap CIs |
+| `packages/forecast` | Fundamentals + rolling / Mondrian CQR; long-window + costs eval scripts |
+| `packages/backtest` | Cost layer, sensitivity CSV, equity + coverage figures, bootstrap CI |
+| `packages/dashboard` | Streamlit: net table, calibration, bootstrap CIs, equity image |
 
 ## Quick start
 
@@ -154,6 +168,7 @@ pytest -q packages/forecast packages/backtest packages/dashboard
 # rebuild fundamentals cache if needed (API rate-limited):
 # python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
 python packages/forecast/scripts/run_long_window_eval.py
+python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
 ```

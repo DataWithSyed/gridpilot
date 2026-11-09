@@ -6,7 +6,14 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from gridpilot_forecast.conformal import RollingCQR, coverage, reliability_table
+from gridpilot_forecast.conformal import (
+    MondrianAsymmetricCQR,
+    RollingCQR,
+    coverage,
+    hour_bucket,
+    reliability_table,
+    residual_load_regime,
+)
 from gridpilot_forecast.features import daily_panel, to_berlin
 from gridpilot_forecast.models import EnsembleQuantile, NaiveDayAhead
 
@@ -35,6 +42,7 @@ class WalkForwardQuantileForecast:
     quantiles: tuple[float, ...] = (0.10, 0.50, 0.90)
     use_fundamentals: bool = False
     calibrate: bool = True
+    calibrator_kind: str = "rolling"  # rolling | mondrian
     conformal_window_days: int = 60
     conformal_delay: int = 2
     model_name: str = "ensemble_lear_qgbm"
@@ -51,11 +59,18 @@ class WalkForwardQuantileForecast:
 
     def __post_init__(self) -> None:
         if self.calibrate:
-            self._cqr = RollingCQR(
-                alpha=0.20,
-                window_days=self.conformal_window_days,
-                delay=self.conformal_delay,
-            )
+            if self.calibrator_kind == "mondrian":
+                self._cqr = MondrianAsymmetricCQR(
+                    alpha=0.20,
+                    window_days=self.conformal_window_days,
+                    delay=self.conformal_delay,
+                )
+            else:
+                self._cqr = RollingCQR(
+                    alpha=0.20,
+                    window_days=self.conformal_window_days,
+                    delay=self.conformal_delay,
+                )
 
     def set_fundamentals(self, fund: dict[str, pd.DataFrame] | None) -> None:
         self.fundamentals = fund
@@ -98,26 +113,61 @@ class WalkForwardQuantileForecast:
         self._model = m
         self._last_fit_day = delivery_day
 
+    def _ensure_rl_edges(self) -> tuple[float, float] | None:
+        """Tercile edges of daily mean residual-load forecast (ex-ante panel only)."""
+        edges = getattr(self, "_rl_edges", None)
+        if edges is not None:
+            return edges
+        if not self.fundamentals or "residual_load_fc" not in self.fundamentals:
+            self._rl_edges = None
+            return None
+        rl = self.fundamentals["residual_load_fc"]
+        daily = rl.mean(axis=1).dropna()
+        if len(daily) < 30:
+            self._rl_edges = None
+            return None
+        q33, q66 = np.nanpercentile(daily.to_numpy(float), [33.3, 66.6])
+        self._rl_edges = (float(q33), float(q66))
+        return self._rl_edges
+
+    def _mondrian_regime_for_day(self, day: pd.Timestamp, n_hours: int) -> tuple[str, np.ndarray | None]:
+        """Return (day_regime, hour_regimes_or_None)."""
+        edges = self._ensure_rl_edges()
+        if edges is not None and self.fundamentals and "residual_load_fc" in self.fundamentals:
+            rl = self.fundamentals["residual_load_fc"]
+            if day in rl.index:
+                day_rl = float(np.nanmean(rl.loc[day].to_numpy(float)))
+                return residual_load_regime(day_rl, edges), None
+        hour_regs = np.array([hour_bucket(h) for h in range(n_hours)])
+        return "hourly", hour_regs
+
     def _observe_realized(self, panel: pd.DataFrame, delivery_day: pd.Timestamp) -> None:
-        """Feed CQR with recently realised days (ex-ante delay handled inside RollingCQR)."""
+        """Feed CQR with recently realised days (ex-ante delay handled inside calibrator)."""
         if self._cqr is None or self._last_raw_pred is None or self._last_pred_day is None:
             return
-        # When forecasting day D, outcomes through D-1 may be in the panel
-        for d in list(panel.index):
-            d = pd.Timestamp(d).normalize()
-            if d >= delivery_day:
-                continue
-            if d in self._cqr._day_scores:
-                continue
-            # Recompute a raw pred for that past day if we have a model trained as-of d
-            # Simpler: only observe the immediately previous predicted day when its
-            # realised prices are now in the panel.
         prev = _as_naive_day(delivery_day) - pd.Timedelta(days=1)
-        if prev in panel.index and prev == self._last_pred_day and prev not in self._cqr._day_scores:
-            y = panel.loc[prev].to_numpy(float)
-            raw = self._last_raw_pred
-            if 0.10 in raw and 0.90 in raw and not np.isnan(y).any():
-                self._cqr.observe_day(prev, y, raw[0.10], raw[0.90])
+        if isinstance(self._cqr, MondrianAsymmetricCQR):
+            already = prev in self._cqr._lower
+        else:
+            already = prev in getattr(self._cqr, "_day_scores", {})
+        if prev not in panel.index or prev != self._last_pred_day or already:
+            return
+        y = panel.loc[prev].to_numpy(float)
+        raw = self._last_raw_pred
+        if 0.10 not in raw or 0.90 not in raw or np.isnan(y).any():
+            return
+        if isinstance(self._cqr, MondrianAsymmetricCQR):
+            regime, hour_regs = self._mondrian_regime_for_day(prev, len(y))
+            if hour_regs is not None:
+                self._cqr.observe_day(
+                    prev, y, raw[0.10], raw[0.90], q_p50=raw.get(0.50), hour_regimes=hour_regs
+                )
+            else:
+                self._cqr.observe_day(
+                    prev, y, raw[0.10], raw[0.90], regime=regime, q_p50=raw.get(0.50)
+                )
+        else:
+            self._cqr.observe_day(prev, y, raw[0.10], raw[0.90])
 
     def predict_quantiles_for_day(self, history: pd.Series, day: pd.Timestamp) -> dict[float, np.ndarray]:
         panel = self._ensure_panel(history)
@@ -136,7 +186,11 @@ class WalkForwardQuantileForecast:
         self._last_raw_pred = {q: np.asarray(v, float).copy() for q, v in pred.items()}
         self._last_pred_day = day
         if self._cqr is not None and self.calibrate:
-            pred = self._cqr.calibrate(day, pred)
+            if isinstance(self._cqr, MondrianAsymmetricCQR):
+                regime, hour_regs = self._mondrian_regime_for_day(day, len(next(iter(pred.values()))))
+                pred = self._cqr.calibrate(day, pred, regime=regime, hour_regimes=hour_regs)
+            else:
+                pred = self._cqr.calibrate(day, pred)
         return pred
 
     def forecast_day(

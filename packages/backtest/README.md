@@ -12,3 +12,7 @@ pytest -q packages/backtest
 ```
 
 Paper trading only. Energy-Charts / SMARD — CC BY 4.0.
+
+## Costs and equity
+
+`gridpilot_backtest.costs.ExecutionCosts` applies ASSUMED fee/slippage/degradation to paper fills. `equity_plot.equity_and_drawdown_figure` writes `figures/equity_curve_net.png`.

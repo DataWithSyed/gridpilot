@@ -27,6 +27,7 @@ class MLForecastDrivenLP:
     price_quantile: float = 0.50
     use_fundamentals: bool = True
     calibrate: bool = True
+    calibrator_kind: str = "rolling"
     fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
@@ -38,6 +39,7 @@ class MLForecastDrivenLP:
             refit_every_days=self.refit_every_days,
             use_fundamentals=self.use_fundamentals,
             calibrate=self.calibrate,
+            calibrator_kind=self.calibrator_kind,
             fundamentals=self.fundamentals,
         )
         self._inner = ForecastDrivenLP(
@@ -62,6 +64,7 @@ class MLRiskAwareForecastLP:
     mode: str = "pessimistic_path"
     use_fundamentals: bool = True
     calibrate: bool = True
+    calibrator_kind: str = "rolling"
     fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
@@ -73,6 +76,7 @@ class MLRiskAwareForecastLP:
             refit_every_days=self.refit_every_days,
             use_fundamentals=self.use_fundamentals,
             calibrate=self.calibrate,
+            calibrator_kind=self.calibrator_kind,
             fundamentals=self.fundamentals,
         )
         self._inner = RiskAwareForecastLP(

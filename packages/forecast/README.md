@@ -38,3 +38,7 @@ python packages/forecast/scripts/run_long_window_eval.py
 ## Licence
 
 MIT. Market data: Energy-Charts / SMARD — CC BY 4.0.
+
+## Mondrian CQR + costs eval
+
+`scripts/run_costs_mondrian_equity.py` compares rolling vs Mondrian CQR coverage and writes net-of-cost backtests (paper only).

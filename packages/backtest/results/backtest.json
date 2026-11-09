@@ -11,166 +11,346 @@
   "forecast_mae": {
     "naive": {
       "n_days": 340,
-      "mae_eur_mwh": 33.97827389705882,
-      "mae_p50": 25.49729166666667
+      "mae_eur_mwh": 33.97827389705882
     },
     "ensemble_fund_raw": {
       "n_days": 337,
-      "mae_eur_mwh": 16.26140019197196,
-      "mae_p50": 12.833076948614448
+      "mae_eur_mwh": 16.26140019197196
     },
-    "ensemble_fund_cqr": {
+    "cqr_rolling": {
       "n_days": 337,
-      "mae_eur_mwh": 16.26140019197196,
-      "mae_p50": 12.833076948614448
+      "mae_eur_mwh": 16.26140019197196
+    },
+    "cqr_mondrian": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.466564183451606
     },
     "calibration": {
       "raw_coverage_80": 0.5,
-      "cqr_coverage_80": 0.7219337289812068,
-      "cqr_reliability": {
+      "rolling_cqr_coverage_80": 0.7219337289812068,
+      "mondrian_cqr_coverage_80": 0.7818991097922848,
+      "rolling_reliability": {
         "0.1": 0.08827893175074183,
         "0.5": 0.4068991097922849,
         "0.9": 0.8102126607319485
       },
+      "mondrian_reliability": {
+        "0.1": 0.08184965380811078,
+        "0.5": 0.4647626112759644,
+        "0.9": 0.8637487636003957
+      },
       "n_hours": 8088,
-      "nominal_80": 0.8
+      "nominal_80": 0.8,
+      "rl_edges": [
+        23395.593311666667,
+        33127.64542166667
+      ],
+      "coverage_figure": "packages/backtest/figures/coverage_calibration.png"
     }
   },
   "strategies": {
     "threshold_arbitrage": {
-      "final_cash_eur": 32379.32483531855,
-      "n_days": 363,
-      "daily_pnl_p10": -59.317957894736715,
-      "daily_pnl_p50": 82.06602382271467,
-      "daily_pnl_p90": 249.05738631578936,
-      "cvar_5pct_loss_daily": 174.2205699081501,
-      "max_drawdown_eur": 307.4152631578945,
+      "final_cash_eur": 31944.339395567848,
+      "n_days": 364,
+      "daily_pnl_p10": -61.7408210526315,
+      "daily_pnl_p50": 76.7807948753464,
+      "daily_pnl_p90": 247.2190452631556,
+      "cvar_5pct_loss_daily": 175.4310919230208,
+      "max_drawdown_eur": 308.4573684210518,
       "cycles": 197.72065443213424,
       "killed": false,
-      "capture_vs_pf_pct": 39.34270444902798,
+      "total_fees_eur": 39.54413088642659,
+      "total_slippage_eur": 395.4413088642659,
+      "total_degradation_eur": 3954.413088642659,
+      "throughput_mwh": 790.8826177285318,
+      "capture_vs_pf_pct": 44.248926950838495,
       "vs_threshold_pct": 100.0
     },
     "forecast_driven_lp": {
-      "final_cash_eur": 42654.569254810485,
-      "n_days": 363,
-      "daily_pnl_p10": -3.601987146814098,
-      "daily_pnl_p50": 81.96738421052629,
-      "daily_pnl_p90": 289.62273684210305,
-      "cvar_5pct_loss_daily": 63.31928012829873,
-      "max_drawdown_eur": 460.4389763157924,
-      "cycles": 355.9746003522084,
+      "final_cash_eur": 33931.74012571023,
+      "n_days": 364,
+      "daily_pnl_p10": -54.246200997229685,
+      "daily_pnl_p50": 51.62157351107999,
+      "daily_pnl_p90": 300.20657144736975,
+      "cvar_5pct_loss_daily": 178.8303248550999,
+      "max_drawdown_eur": 433.66929999999957,
+      "cycles": 474.6462646946198,
       "killed": false,
-      "capture_vs_pf_pct": 51.827705491935546,
-      "vs_threshold_pct": 131.7339674985562
+      "total_fees_eur": 94.9292529389243,
+      "total_slippage_eur": 949.292529389243,
+      "total_degradation_eur": 9492.92529389243,
+      "throughput_mwh": 1898.585058778486,
+      "capture_vs_pf_pct": 47.00185129969245,
+      "vs_threshold_pct": 106.22144883177059
     },
     "risk_aware_forecast_lp": {
-      "final_cash_eur": 34517.93815789474,
-      "n_days": 363,
-      "daily_pnl_p10": 0.0,
-      "daily_pnl_p50": 38.03058815789518,
-      "daily_pnl_p90": 267.0436736842115,
-      "cvar_5pct_loss_daily": 5.475417546979209,
-      "max_drawdown_eur": 454.8600000000006,
-      "cycles": 232.690290858728,
+      "final_cash_eur": 26860.22277901498,
+      "n_days": 364,
+      "daily_pnl_p10": -5.594385394749007,
+      "daily_pnl_p50": 26.00571776315769,
+      "daily_pnl_p90": 238.50068931389086,
+      "cvar_5pct_loss_daily": 114.28734906823611,
+      "max_drawdown_eur": 455.3563749999994,
+      "cycles": 344.18985185106885,
       "killed": false,
-      "capture_vs_pf_pct": 41.94124015997314,
-      "vs_threshold_pct": 106.60487312028027
+      "total_fees_eur": 68.83797037021385,
+      "total_slippage_eur": 688.3797037021385,
+      "total_degradation_eur": 6883.797037021385,
+      "throughput_mwh": 1376.759407404277,
+      "capture_vs_pf_pct": 37.20646781622871,
+      "vs_threshold_pct": 84.08445216663874
     },
     "ml_forecast_driven_lp": {
-      "final_cash_eur": 65497.02673967725,
-      "n_days": 363,
-      "daily_pnl_p10": 13.65309578947281,
-      "daily_pnl_p50": 174.56337894736862,
-      "daily_pnl_p90": 344.01036526315875,
-      "cvar_5pct_loss_daily": 13.037798265550675,
-      "max_drawdown_eur": 458.45684210526815,
-      "cycles": 411.3857723429083,
+      "final_cash_eur": 57152.53284265314,
+      "n_days": 364,
+      "daily_pnl_p10": 0.0,
+      "daily_pnl_p50": 135.30284210526742,
+      "daily_pnl_p90": 362.0720076192748,
+      "cvar_5pct_loss_daily": 79.78834631139478,
+      "max_drawdown_eur": 466.2231578947394,
+      "cycles": 525.6615347230263,
       "killed": false,
-      "capture_vs_pf_pct": 79.58257864902924,
-      "vs_threshold_pct": 202.2803967432784
+      "total_fees_eur": 105.13230694460532,
+      "total_slippage_eur": 1051.323069446053,
+      "total_degradation_eur": 10513.23069446053,
+      "throughput_mwh": 2102.646138892106,
+      "capture_vs_pf_pct": 79.16702297374279,
+      "vs_threshold_pct": 178.91286507738155
     },
     "ml_risk_aware_forecast_lp": {
-      "final_cash_eur": 52664.63013455656,
-      "n_days": 363,
+      "final_cash_eur": 45565.61311168154,
+      "n_days": 364,
       "daily_pnl_p10": 0.0,
-      "daily_pnl_p50": 129.41914342105883,
-      "daily_pnl_p90": 303.33856631578965,
-      "cvar_5pct_loss_daily": 1.3046329627949693,
-      "max_drawdown_eur": 454.8600000000006,
-      "cycles": 301.7283795013872,
+      "daily_pnl_p50": 93.4657971225605,
+      "daily_pnl_p90": 292.62551355264003,
+      "cvar_5pct_loss_daily": 43.06214113167369,
+      "max_drawdown_eur": 455.3563749999994,
+      "cycles": 410.28128501916103,
       "killed": false,
-      "capture_vs_pf_pct": 63.99049358932832,
-      "vs_threshold_pct": 162.6489446657989
+      "total_fees_eur": 82.05625700383241,
+      "total_slippage_eur": 820.5625700383241,
+      "total_degradation_eur": 8205.625700383242,
+      "throughput_mwh": 1641.1251400766482,
+      "capture_vs_pf_pct": 63.116956687753856,
+      "vs_threshold_pct": 142.64064924755837
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "final_cash_eur": 55500.78074469161,
+      "n_days": 364,
+      "daily_pnl_p10": -5.4805548684213585,
+      "daily_pnl_p50": 125.88337894736765,
+      "daily_pnl_p90": 363.6893421053224,
+      "cvar_5pct_loss_daily": 81.98684230440553,
+      "max_drawdown_eur": 459.49894736841816,
+      "cycles": 540.8811171838183,
+      "killed": false,
+      "total_fees_eur": 108.17622343676354,
+      "total_slippage_eur": 1081.762234367635,
+      "total_degradation_eur": 10817.622343676354,
+      "throughput_mwh": 2163.52446873527,
+      "capture_vs_pf_pct": 76.87903520168278,
+      "vs_threshold_pct": 173.74214585383515
     },
     "perfect_foresight_daily": {
-      "final_cash_eur": 82300.70934058152,
-      "n_days": 363,
-      "daily_pnl_p10": 37.76890526315802,
-      "daily_pnl_p50": 224.71502631578915,
-      "daily_pnl_p90": 400.80082947368214,
-      "cvar_5pct_loss_daily": -20.04191250911186,
-      "max_drawdown_eur": 494.3373684210528,
-      "cycles": 492.94675727146915,
+      "final_cash_eur": 72192.3481467894,
+      "n_days": 364,
+      "daily_pnl_p10": 26.906414210524417,
+      "daily_pnl_p50": 177.2224526315763,
+      "daily_pnl_p90": 396.5685047368373,
+      "cvar_5pct_loss_daily": 9.227067472300956,
+      "max_drawdown_eur": 495.3794736842101,
+      "cycles": 587.3367228607007,
       "killed": false,
+      "total_fees_eur": 117.46734457213945,
+      "total_slippage_eur": 1174.6734457213943,
+      "total_degradation_eur": 11746.734457213945,
+      "throughput_mwh": 2349.3468914427885,
       "capture_vs_pf_pct": 100.0,
-      "vs_threshold_pct": 254.17673085885343
+      "vs_threshold_pct": 225.99418085573498
+    }
+  },
+  "strategies_zero_costs": {
+    "threshold_arbitrage": {
+      "final_cash_eur": 36333.737923961206,
+      "capture_vs_pf_pct": 42.62960975683057
+    },
+    "forecast_driven_lp": {
+      "final_cash_eur": 44468.88720193091,
+      "capture_vs_pf_pct": 52.17440913197841
+    },
+    "risk_aware_forecast_lp": {
+      "final_cash_eur": 34501.23749010868,
+      "capture_vs_pf_pct": 40.47957557818806
+    },
+    "ml_forecast_driven_lp": {
+      "final_cash_eur": 68822.21891350436,
+      "capture_vs_pf_pct": 80.74766050830799
+    },
+    "ml_risk_aware_forecast_lp": {
+      "final_cash_eur": 54673.85763910695,
+      "capture_vs_pf_pct": 64.14768609641408
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "final_cash_eur": 67508.34154617238,
+      "capture_vs_pf_pct": 79.20611585482611
+    },
+    "perfect_foresight_daily": {
+      "final_cash_eur": 85231.2233942968,
+      "capture_vs_pf_pct": 100.0
     }
   },
   "bootstrap_vs_threshold": {
     "forecast_driven_lp": {
-      "n_days": 363,
-      "mean_diff": 28.122904323669236,
-      "ci_low": 19.84771646913662,
-      "ci_high": 37.79983173884681,
+      "n_days": 364,
+      "mean_diff": 5.459892115775781,
+      "ci_low": -5.5380485398769945,
+      "ci_high": 15.947733105362358,
       "block": 7,
       "n_boot": 400,
       "alpha": 0.1
     },
     "risk_aware_forecast_lp": {
-      "n_days": 363,
-      "mean_diff": 5.707942624176836,
-      "ci_low": -5.6303854394740265,
-      "ci_high": 16.14659205827487,
+      "n_days": 364,
+      "mean_diff": -13.967353342178205,
+      "ci_low": -24.953536891696153,
+      "ci_high": -4.479192141754109,
       "block": 7,
       "n_boot": 400,
       "alpha": 0.1
     },
     "ml_forecast_driven_lp": {
-      "n_days": 363,
-      "mean_diff": 91.04978444726913,
-      "ci_low": 77.51380764139351,
-      "ci_high": 104.49427051779583,
+      "n_days": 364,
+      "mean_diff": 69.25327870078378,
+      "ci_low": 53.28450657716905,
+      "ci_high": 82.13620766613549,
       "block": 7,
       "n_boot": 400,
       "alpha": 0.1
     },
     "ml_risk_aware_forecast_lp": {
-      "n_days": 363,
-      "mean_diff": 55.698829612225914,
-      "ci_low": 44.32433869302408,
-      "ci_high": 66.83634959132611,
+      "n_days": 364,
+      "mean_diff": 37.42108163767497,
+      "ci_low": 25.058343085205035,
+      "ci_high": 48.106653497474305,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "n_days": 364,
+      "mean_diff": 64.71549821187847,
+      "ci_low": 49.200545210886986,
+      "ci_high": 78.98171285183066,
       "block": 7,
       "n_boot": 400,
       "alpha": 0.1
     },
     "perfect_foresight_daily": {
-      "n_days": 363,
-      "mean_diff": 137.1420898905316,
-      "ci_low": 119.7682601823151,
-      "ci_high": 151.83175750450246,
+      "n_days": 364,
+      "mean_diff": 110.57145261324602,
+      "ci_low": 91.67657832912671,
+      "ci_high": 124.9082723317405,
       "block": 7,
       "n_boot": 400,
       "alpha": 0.1
     }
   },
+  "cost_scenario_base": {
+    "fee_eur_per_mwh": 0.05,
+    "slippage_eur_per_mwh": 0.5,
+    "degradation_eur_per_mwh": 5.0,
+    "label": "base",
+    "assumed": true,
+    "sources": [
+      {
+        "id": "A-C1",
+        "item": "Trading fee EUR/MWh",
+        "assumed_default": 0.05,
+        "range_eur_mwh": [
+          0.04,
+          0.1
+        ],
+        "note": "Order-of-magnitude from historical EPEX SPOT published trading fees (DE-AT-CH Day-Ahead Auction ~0.04 \u20ac/MWh; continuous intraday ~0.10 \u20ac/MWh in older public price lists). Current member fee schedules change; treat as ASSUMED.",
+        "source": "EPEX SPOT public price lists / fee documentation (no DOI)",
+        "doi": null
+      },
+      {
+        "id": "A-C2",
+        "item": "Slippage / bid-ask proxy EUR/MWh",
+        "assumed_default": 0.5,
+        "range_eur_mwh": [
+          0.0,
+          2.0
+        ],
+        "note": "Day-ahead SDAC is a single clearing price (no classic bid-ask). This term is an ASSUMED conservatism for imperfect fills / modelling error when paper-trading against the published clearing series. Set 0 for pure auction-fill assumption.",
+        "source": "Modelling choice (ASSUMED); not an exchange fee",
+        "doi": null
+      },
+      {
+        "id": "A-C3",
+        "item": "Battery degradation EUR/MWh throughput",
+        "assumed_default": 5.0,
+        "range_eur_mwh": [
+          1.0,
+          10.0
+        ],
+        "note": "Linear wear proxy already used in gridpilot-core BatteryConfig. Order-of-magnitude aligned with cycling/degradation cost discussion in grid-storage arbitrage literature.",
+        "source": "Kies et al. (2018) joint arbitrage\u2013degradation framing; NREL ATB cost context",
+        "doi": "10.1088/1742-6596/977/1/012005"
+      }
+    ]
+  },
+  "cost_sources": [
+    {
+      "id": "A-C1",
+      "item": "Trading fee EUR/MWh",
+      "assumed_default": 0.05,
+      "range_eur_mwh": [
+        0.04,
+        0.1
+      ],
+      "note": "Order-of-magnitude from historical EPEX SPOT published trading fees (DE-AT-CH Day-Ahead Auction ~0.04 \u20ac/MWh; continuous intraday ~0.10 \u20ac/MWh in older public price lists). Current member fee schedules change; treat as ASSUMED.",
+      "source": "EPEX SPOT public price lists / fee documentation (no DOI)",
+      "doi": null
+    },
+    {
+      "id": "A-C2",
+      "item": "Slippage / bid-ask proxy EUR/MWh",
+      "assumed_default": 0.5,
+      "range_eur_mwh": [
+        0.0,
+        2.0
+      ],
+      "note": "Day-ahead SDAC is a single clearing price (no classic bid-ask). This term is an ASSUMED conservatism for imperfect fills / modelling error when paper-trading against the published clearing series. Set 0 for pure auction-fill assumption.",
+      "source": "Modelling choice (ASSUMED); not an exchange fee",
+      "doi": null
+    },
+    {
+      "id": "A-C3",
+      "item": "Battery degradation EUR/MWh throughput",
+      "assumed_default": 5.0,
+      "range_eur_mwh": [
+        1.0,
+        10.0
+      ],
+      "note": "Linear wear proxy already used in gridpilot-core BatteryConfig. Order-of-magnitude aligned with cycling/degradation cost discussion in grid-storage arbitrage literature.",
+      "source": "Kies et al. (2018) joint arbitrage\u2013degradation framing; NREL ATB cost context",
+      "doi": "10.1088/1742-6596/977/1/012005"
+    }
+  ],
+  "cost_sensitivity_csv": "packages/backtest/results/cost_sensitivity.csv",
+  "equity_figure": "packages/backtest/figures/equity_curve_net.png",
+  "coverage_figure": "packages/backtest/figures/coverage_calibration.png",
   "assumptions": [
-    "ML lookback_days=90, refit_every_days=7 (ASSUMED compute tradeoff)",
-    "CQR alpha=0.20, window=60d, delay=2",
-    "Day-ahead TSO forecasts from Energy-Charts public_power_forecast (ex-ante)",
-    "Hourly mean of native 15-min MTU where applicable",
-    "No fees/slippage; paper trading only",
-    "1 MW / 2 MWh battery; max 2 cycles/day; drawdown stop 20k EUR"
+    "ML lookback_days=90, refit_every_days=7 (ASSUMED)",
+    "Rolling CQR alpha=0.20 window=60d delay=2; Mondrian asymmetric + P50 shift",
+    "Base costs ASSUMED: fee 0.05 \u20ac/MWh, slippage 0.50 \u20ac/MWh, degradation 5 \u20ac/MWh throughput",
+    "Cost layer is accounting on fills; strategies do not re-optimise for fees",
+    "Paper trading only \u2014 no live orders",
+    "1 MW / 2 MWh; max 2 cycles/day; drawdown stop 20k EUR",
+    "Optional FCR overlay: link only to de-bess-reserve-revenue-stacking (not co-optimised here)"
   ],
   "attribution": "Energy-Charts / SMARD \u2014 CC BY 4.0",
-  "paper_trading_only": true
+  "paper_trading_only": true,
+  "note_prior_runs": "Prior long-window README cash used core default degradation_eur_per_mwh=5 but fee=slippage=0. This run reports explicit zero vs base vs stress."
 }

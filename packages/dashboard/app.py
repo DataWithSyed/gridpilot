@@ -62,14 +62,30 @@ def main() -> None:
     cal = (mae.get("calibration") or {}) if isinstance(mae, dict) else {}
     if cal:
         st.subheader("Forecast calibration (80% interval)")
-        st.write(
-            f"Raw coverage **{100*cal.get('raw_coverage_80', float('nan')):.1f}%** → "
-            f"CQR **{100*cal.get('cqr_coverage_80', float('nan')):.1f}%** "
-            f"(nominal 80%; n={cal.get('n_hours', '?')} hours)"
-        )
-        rel = cal.get("cqr_reliability") or {}
+        raw = cal.get("raw_coverage_80", cal.get("raw_coverage_80"))
+        roll = cal.get("rolling_cqr_coverage_80", cal.get("cqr_coverage_80"))
+        mond = cal.get("mondrian_cqr_coverage_80")
+        line = f"Raw **{100*float(raw):.1f}%**" if raw is not None else "Raw n/a"
+        if roll is not None:
+            line += f" → rolling CQR **{100*float(roll):.1f}%**"
+        if mond is not None:
+            line += f" → Mondrian CQR **{100*float(mond):.1f}%**"
+        st.write(f"{line} (nominal 80%; n={cal.get('n_hours', '?')} hours)")
+        rel = cal.get("mondrian_reliability") or cal.get("cqr_reliability") or {}
         if rel:
             st.write("Reliability (empirical ≤ qτ):", {k: round(v, 3) for k, v in rel.items()})
+        cov_fig = Path(__file__).resolve().parents[2] / "backtest" / "figures" / "coverage_calibration.png"
+        if cov_fig.exists():
+            st.image(str(cov_fig), caption="Coverage calibration")
+
+    eq_fig = Path(__file__).resolve().parents[2] / "backtest" / "figures" / "equity_curve_net.png"
+    if eq_fig.exists():
+        st.subheader("Equity curve (net of base ASSUMED costs)")
+        st.image(str(eq_fig), caption="Cumulative cash + drawdown")
+
+    if payload.get("cost_scenario_base"):
+        st.subheader("Base cost scenario (ASSUMED)")
+        st.json({k: v for k, v in payload["cost_scenario_base"].items() if k != "sources"})
 
     boot = payload.get("bootstrap_vs_threshold") or {}
     if boot:
@@ -79,7 +95,7 @@ def main() -> None:
 
     lim = payload.get("assumptions") or payload.get("limitations") or [
         "Paper trading only",
-        "Hourly resample; no fees/slippage",
+        "Hourly resample; see ASSUMED ExecutionCosts in packages/backtest",
     ]
     st.subheader("Assumptions / limitations")
     for line in lim:

@@ -10,3 +10,9 @@
 
 
 GridPilot `packages/forecast` reuses ideas from the DE day-ahead and wind probabilistic repos without copying their full data stacks.
+
+## Optional reserve / FCR overlay (link only)
+
+GridPilot does **not** co-optimise FCR/aFRR here. For a reserve-revenue stacking formulation on German BESS, see
+[de-bess-reserve-revenue-stacking](https://github.com/DataWithSyed/de-bess-reserve-revenue-stacking) — treat it as a future strategy hook / overlay, not a duplicated LP in this repo.
+
