@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridpilot-data"
+version = "0.1.0"
+description = "GridPilot market-data adapters (Energy-Charts, replay, optional ENTSO-E). Paper-trading feeds only."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "DataWithSyed" }]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+entsoe = ["entsoe-py>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

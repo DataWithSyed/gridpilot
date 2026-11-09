@@ -1,0 +1,11 @@
+{
+  "start": "2026-08-01",
+  "end": "2026-10-15",
+  "n_hours": 1824,
+  "mean_eur_mwh": 140.48313733552632,
+  "min_eur_mwh": -18.995,
+  "max_eur_mwh": 697.3075,
+  "negative_share": 0.051535087719298246,
+  "attribution": "Energy-Charts / SMARD \u2014 CC BY 4.0",
+  "note": "15-min MTU resampled to hourly means when to_hourly=True (default)."
+}
