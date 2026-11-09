@@ -60,12 +60,25 @@ flowchart TB
 
 - [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
 - [x] **Core runtime** ([`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core)): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
-- [ ] **Data adapters** (`gridpilot-data`): pluggable live/near-live feeds, ENTSO-E env-token adapter, richer replay
+- [x] **Data adapters** ([`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data)): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
 - [ ] **Forecasting** (`gridpilot-forecast`): price / renewable probabilistic forecasts (links `de-day-ahead-price-forecasting`, `de-wind-probabilistic-forecasting`)
-- [ ] **Risk engine** (`gridpilot-risk`): scenario PnL, VaR / CVaR, stress tests beyond core limits
-- [ ] **Strategy pack** (`gridpilot-strategies`): forecast-driven, stochastic, reserve-stacking hooks (links `de-bess-reserve-revenue-stacking`)
+- [x] **Risk engine** ([`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk)): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
+- [x] **Strategy pack** ([`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies)): forecast-driven + risk-aware LP (reserve-stacking hooks still planned)
 - [ ] **Backtest harness** (`gridpilot-backtest`): walk-forward reports with P50/P90
 - [ ] **Dashboard** (`gridpilot-dashboard`): Streamlit ops view
+
+## Measured results so far (real runs)
+
+Window **2026-08-01 → 2026-10-15**, DE-LU day-ahead via Energy-Charts (CC BY 4.0), 15-min → hourly means, illustrative **1 MW / 2 MWh** BESS. Paper trading only; no fees/slippage.
+
+| Module | Highlight |
+|---|---|
+| [`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core) | Threshold cash **9,993** € (39.6% of PF oracle **25,228** €); daily PnL P50 **144.73** € |
+| [`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data) | **1,824** hourly bars; DA mean **140.48** €/MWh; **5.15%** negative hours |
+| [`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk) | Daily VaR₅% / CVaR₅% (threshold) **70.36 / 150.37** €; 21-day bootstrap cash P50 **2,499** € (40 paths) |
+| [`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies) | **ForecastDrivenLP** cash **14,145** € (**+41.6%** vs threshold; **56.1%** of PF); RiskAware cuts daily CVaR₅% to **3.92** € |
+
+Honest caveat: forecast is rolling hour-of-day quantile climatology (not ML); early days are lookback warm-up; risk-aware is a return/risk trade-off, not strictly dominant on cash.
 
 ## Quick start (core)
 
