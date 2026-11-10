@@ -1,0 +1,31 @@
+{
+  "bootstrap_threshold_21d_cash": {
+    "n": 40.0,
+    "mean": 2508.444555776056,
+    "std": 655.7419108008934,
+    "p10": 1718.864198000346,
+    "p50": 2499.370283812327,
+    "p90": 3371.744621705332,
+    "var_5pct_loss": -1570.4209590737532,
+    "cvar_5pct_loss": -1327.2703197454985,
+    "var_10pct_loss": -1718.864198000346,
+    "cvar_10pct_loss": -1469.2803418628807
+  },
+  "n_scenarios": 40,
+  "block_days": 7,
+  "horizon_days": 21,
+  "full_window_daily_pnl_risk": {
+    "n": 75.0,
+    "mean": 133.24065021260378,
+    "std": 135.26672158953974,
+    "p10": 0.0,
+    "p50": 144.73056447368435,
+    "p90": 301.47007789473673,
+    "var_5pct_loss": 70.35653947368436,
+    "cvar_5pct_loss": 150.3712153739616,
+    "var_10pct_loss": -0.0,
+    "cvar_10pct_loss": 29.280857536432567
+  },
+  "full_window_final_cash_eur": 9993.048765945285,
+  "note": "Bootstrap PnL is final cash on 21-day synthetic paths (not annualised). Historical VaR/CVaR are on daily PnL of the full 2026-08-01\u21922026-10-15 run."
+}
