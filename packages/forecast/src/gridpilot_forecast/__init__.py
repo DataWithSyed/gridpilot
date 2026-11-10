@@ -11,6 +11,16 @@ from gridpilot_forecast.conformal import (
     coverage,
     reliability_table,
 )
+from gridpilot_forecast.bid_curves import (
+    HourBidCurve,
+    build_curves_for_day,
+    build_quantile_bid_curve,
+    clear_day_curves,
+    evaluate_day,
+    gate_closure_time,
+    rolling_hod_quantiles,
+    settle_locked_schedule,
+)
 from gridpilot_forecast.cost_aware_lp import (
     CostAwareForecastDrivenLP,
     CostAwarePerfectForesightDaily,
@@ -33,6 +43,14 @@ __all__ = [
     "CostAwarePerfectForesightDaily",
     "MLCostAwareForecastDrivenLP",
     "solve_day_lp_with_costs",
+    "HourBidCurve",
+    "build_curves_for_day",
+    "build_quantile_bid_curve",
+    "clear_day_curves",
+    "evaluate_day",
+    "gate_closure_time",
+    "rolling_hod_quantiles",
+    "settle_locked_schedule",
     "RollingCQR",
     "MondrianAsymmetricCQR",
     "build_tight_hour_regimes",

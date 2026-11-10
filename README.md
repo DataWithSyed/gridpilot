@@ -65,7 +65,7 @@ flowchart TB
 - [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
 - [x] **Core runtime** (`packages/core`): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
 - [x] **Data adapters** (`packages/data`): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
-- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / Mondrian / **tight Mondrian** CQR; **cost-aware LP**
+- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / Mondrian / **tight Mondrian** CQR; **cost-aware LP**; **gate-closure bid curves** (did not beat locked schedule on the 12-month window)
 - [x] **Risk engine** (`packages/risk`): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
 - [x] **Strategy pack** (`packages/strategies`): forecast-driven + risk-aware LP (climatology baseline)
 - [x] **Backtest harness** (`packages/backtest`): walk-forward table, fees/slippage/degradation cost layer, **cost-aware re-optimisation**, equity + coverage figures, cost-sensitivity sweep
@@ -81,7 +81,7 @@ gridpilot/
   packages/data/         # Energy-Charts adapters, optional ENTSO-E
   packages/risk/         # block-bootstrap VaR/CVaR, kill-switch hooks
   packages/strategies/   # climatology forecast-driven + risk-aware LP
-  packages/forecast/     # LEAR-lite + GBM, CQR, cost-aware LP
+  packages/forecast/     # LEAR-lite + GBM, CQR, cost-aware LP, gate-closure bids
   packages/backtest/     # comparison harness, sourced fees, equity
   packages/dashboard/    # Streamlit UI
   packages/live/         # near-live paper pilot + accuracy check
@@ -166,6 +166,19 @@ Cost-aware strategies were **re-run** under this preset (not just repriced). Acc
 
 Versus the earlier **assumed** base costs (0.05 / 0.50 / 5), sourced net cash is slightly higher (cost-aware ML **65,473** vs **64,646**; threshold **32,367** vs **31,944**; cost-aware PF **82,271** vs **81,314**) because the variable fee is lower and DA slippage is 0. Almost all of the remaining gap versus gross is still the **ASSUMED 5 €/MWh degradation** (cost-aware ML paid **€8,219** degradation vs **€25** fees). The ML edge vs threshold **survives** and the 90% CI still excludes zero. This is **paper trading only** and is not a real-money result. The sourced fee understates all-in exchange costs if a current EPEX trading fee and annual membership apply.
 
+### Gate-closure bid curves vs locked schedule (same window, 2026-11-10 Asia/Karachi)
+
+P10/P50/P90 fans are turned into SDAC-style price-quantity curves at **12:00 Europe/Berlin on D-1** and cleared against the realised DE-LU price, with partial acceptance at a price tie (ASSUMED 50% of the marginal step) and when SoC or power caps the fill. The comparison is against the **locked cost-aware P50 schedule** (price-taking volume) on the **same** fan. Sourced fee preset. Design: [`docs/BIDDING.md`](docs/BIDDING.md). Results: [`packages/forecast/results/GATE_CLOSURE_BIDDING.md`](packages/forecast/results/GATE_CLOSURE_BIDDING.md). Paper trading only.
+
+These schedule totals are **not** a re-run of the published sourced cost-aware ML **65,473** EUR path (fundamentals + PaperAgent 2-cycle/day clip, 411 cycles). The ML fan here is price-only and unclipped (479.4 cycles). Compare bid-vs-schedule deltas only.
+
+| Forecast | Locked schedule € | Quantile bids € | Anchored bids € | Bids − schedule €/day (90% CI) |
+|---|---:|---:|---:|---|
+| 90-day hour-of-day climatology | 60,379 | 13,082 | 17,740 | quantile **−129.94 [−149.98, −107.28]**; anchored **−117.14 [−139.04, −94.56]** |
+| Walk-forward ML + tight Mondrian (price-only) | 75,102 | 3,566 | 22,867 | quantile **−196.53 [−222.03, −171.41]**; anchored **−143.50 [−163.33, −122.56]** |
+
+**Honest takeaway: bid curves did not improve on the locked schedule.** Every 90% CI excludes zero. The curves under-cycle (151–188 vs 458–479 cycles) because they have no explicit water value; they skip planned cycles when the realised price misses the steps or SoC is already in the wrong place. Anchored curves beat standalone quantile curves under ML but still trail the locked LP. The bidding code is kept as infrastructure for later water-value / intraday / imbalance work. Window length here is **8,736** h (364 days; DST cancel).
+
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
@@ -194,7 +207,7 @@ Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1
 | `packages/data` | Energy-Charts adapters + optional ENTSO-E env token |
 | `packages/risk` | Block-bootstrap VaR/CVaR hooks |
 | `packages/strategies` | Climatology ForecastDrivenLP / RiskAwareForecastLP |
-| `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; long-window eval |
+| `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; gate-closure bids; long-window eval |
 | `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
 | `packages/live` | Near-live paper pilot with gross/net fee toggle |
 | `packages/simulator` | Real-time paper replay, Streamlit dashboard, HTML/PNG report |
@@ -214,6 +227,7 @@ pytest -q
 python packages/forecast/scripts/run_long_window_eval.py
 python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
 python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs sourced --skip-forecast
+python packages/forecast/scripts/run_gate_closure_bidding.py --forecast climatology --costs sourced
 python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
@@ -235,6 +249,7 @@ See [`docs/related-work.md`](docs/related-work.md). Highlights:
 - [`docs/methods.md`](docs/methods.md) — literature anchors (DOIs)
 - [`docs/fees.md`](docs/fees.md) — sourced vs assumed market fees (retrieval 2026-11-10)
 - [`docs/SIMULATOR.md`](docs/SIMULATOR.md) — paper market simulator, how to run, limitations
+- [`docs/BIDDING.md`](docs/BIDDING.md) — SDAC-style gate-closure bid curves; honest negative vs locked schedule
 - [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
 - [`docs/limitations.md`](docs/limitations.md) — honest scope limits
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help
