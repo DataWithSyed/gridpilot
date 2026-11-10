@@ -144,6 +144,84 @@ def hour_bucket(hour: int) -> str:
     return "evening"
 
 
+
+
+def regime_fallback_chain(regime: str) -> list[str]:
+    """Parent chain for tight labels like ``evening|high|volatile``."""
+    parts = [x for x in str(regime).split("|") if x]
+    chain = ["|".join(parts[:i]) for i in range(len(parts), 0, -1)]
+    if "all" not in chain:
+        chain.append("all")
+    return chain
+
+
+def vol_bucket(recent_std: float, baseline_std: float) -> str:
+    """Ex-ante calm/volatile split of a hour-of-day price std."""
+    if not np.isfinite(recent_std) or not np.isfinite(baseline_std) or baseline_std <= 0:
+        return "calm"
+    return "volatile" if recent_std >= baseline_std else "calm"
+
+
+def hourly_volatility_buckets(
+    price_panel: pd.DataFrame,
+    day: pd.Timestamp,
+    n_hours: int,
+    *,
+    recent_days: int = 7,
+    baseline_days: int = 60,
+) -> np.ndarray:
+    """Hour-of-day volatility labels using only days strictly before ``day``."""
+    day = pd.Timestamp(day).normalize()
+    past = price_panel[price_panel.index < day]
+    labels = []
+    for h in range(n_hours):
+        col = past.iloc[:, min(h, past.shape[1] - 1)].dropna() if past.shape[1] else pd.Series(dtype=float)
+        if len(col) < max(recent_days, 14):
+            labels.append("calm")
+            continue
+        recent = float(col.iloc[-recent_days:].std(ddof=0))
+        baseline = float(col.iloc[-baseline_days:].std(ddof=0))
+        labels.append(vol_bucket(recent, baseline))
+    return np.asarray(labels)
+
+
+def tighter_hour_regimes(
+    n_hours: int,
+    *,
+    residual_hourly: np.ndarray | None = None,
+    rl_edges: tuple[float, float] | None = None,
+    vol_hourly: np.ndarray | None = None,
+) -> np.ndarray:
+    """Hour-bucket × residual-load tercile × volatility labels (ex-ante features)."""
+    labels = []
+    for h in range(n_hours):
+        parts = [hour_bucket(h)]
+        if residual_hourly is not None and rl_edges is not None and h < len(residual_hourly):
+            v = float(residual_hourly[h])
+            if np.isfinite(v):
+                parts.append(residual_load_regime(v, rl_edges))
+        if vol_hourly is not None and h < len(vol_hourly):
+            parts.append(str(vol_hourly[h]))
+        labels.append("|".join(parts))
+    return np.asarray(labels)
+
+
+def build_tight_hour_regimes(
+    day: pd.Timestamp,
+    n_hours: int,
+    *,
+    price_panel: pd.DataFrame | None = None,
+    residual_hourly: np.ndarray | None = None,
+    rl_edges: tuple[float, float] | None = None,
+) -> np.ndarray:
+    """Convenience: tighter Mondrian labels for one delivery day."""
+    vol = None
+    if price_panel is not None and len(price_panel) > 0:
+        vol = hourly_volatility_buckets(price_panel, day, n_hours)
+    return tighter_hour_regimes(
+        n_hours, residual_hourly=residual_hourly, rl_edges=rl_edges, vol_hourly=vol
+    )
+
 @dataclass
 class MondrianAsymmetricCQR:
     """Regime-conditional CQR + asymmetric margins + P50 residual shift.
@@ -204,11 +282,22 @@ class MondrianAsymmetricCQR:
             labels = np.asarray([str(x) for x in hour_regimes])
             if len(labels) != len(y):
                 raise ValueError("hour_regimes length must match y")
-            for lab in sorted(set(labels)):
-                _accumulate(lab, labels == lab)
+            keys: set[str] = set()
+            for lab in labels:
+                keys.update(regime_fallback_chain(str(lab)))
+            for key in sorted(keys):
+                if key == "all":
+                    mask = np.ones(len(labels), dtype=bool)
+                else:
+                    mask = np.array(
+                        [lab == key or str(lab).startswith(key + "|") for lab in labels],
+                        dtype=bool,
+                    )
+                _accumulate(key, mask)
             self._day_regime[day] = "hourly"
         else:
-            _accumulate(str(regime), slice(None))
+            for key in regime_fallback_chain(str(regime)):
+                _accumulate(key, slice(None))
             self._day_regime[day] = str(regime)
 
     def _hist(self, store: dict, day: pd.Timestamp, regime: str) -> list[float]:
@@ -227,10 +316,20 @@ class MondrianAsymmetricCQR:
         return out
 
     def margins_for(self, day: pd.Timestamp, regime: str = "all") -> tuple[float, float, float]:
-        classic_h = self._hist(self._classic, day, regime)
-        lo_h = self._hist(self._lower, day, regime)
-        hi_h = self._hist(self._upper, day, regime)
-        p50_h = self._hist(self._p50, day, regime)
+        classic_h: list[float] = []
+        lo_h: list[float] = []
+        hi_h: list[float] = []
+        p50_h: list[float] = []
+        used = regime
+        for key in regime_fallback_chain(regime):
+            classic_h = self._hist(self._classic, day, key)
+            if len(classic_h) >= 5:
+                used = key
+                lo_h = self._hist(self._lower, day, key)
+                hi_h = self._hist(self._upper, day, key)
+                p50_h = self._hist(self._p50, day, key)
+                break
+        _ = used
         classic_m = conformal_quantile(np.asarray(classic_h, float), self.alpha) if len(classic_h) >= 5 else 0.0
         lo_q = conformal_quantile(np.asarray(lo_h, float), self.alpha / 2.0) if len(lo_h) >= 5 else 0.0
         hi_q = conformal_quantile(np.asarray(hi_h, float), self.alpha / 2.0) if len(hi_h) >= 5 else 0.0

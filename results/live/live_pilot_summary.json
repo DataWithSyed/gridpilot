@@ -1,5 +1,5 @@
 {
-  "run_at_asia_karachi": "2026-11-10 03:42:24.827838+05:00",
+  "run_at_asia_karachi": "2026-11-10 08:02:39.101764+05:00",
   "data_source": "Energy-Charts DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts (CC BY 4.0)",
   "latest_published_price_day": "2026-11-10",
   "eval_window": {
@@ -11,6 +11,7 @@
   "tomorrow": {
     "delivery_day": "2026-11-11",
     "da_prices_published": false,
+    "cost_aware_schedule": true,
     "note": "Day-ahead prices for this delivery day were not published at run time; schedule is forecast-only (paper). Gate-closure bidding is not simulated.",
     "forecast_p50_mean_eur_mwh": 351.4838541666666,
     "forecast_p10_mean_eur_mwh": 326.1576545066989,
@@ -27,7 +28,7 @@
         "forecast_p90": 290.3586996599677,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 01:00:00+01:00",
@@ -36,7 +37,7 @@
         "forecast_p90": 285.82369965996776,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 02:00:00+01:00",
@@ -45,7 +46,7 @@
         "forecast_p90": 281.7611996599678,
         "charge_mw": 1.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 03:00:00+01:00",
@@ -54,7 +55,7 @@
         "forecast_p90": 283.09619965996774,
         "charge_mw": 0.894736842105263,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 04:00:00+01:00",
@@ -63,7 +64,7 @@
         "forecast_p90": 293.34869965996774,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 05:00:00+01:00",
@@ -72,7 +73,7 @@
         "forecast_p90": 293.01869965996775,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 06:00:00+01:00",
@@ -81,7 +82,7 @@
         "forecast_p90": 356.1836996599677,
         "charge_mw": -0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 07:00:00+01:00",
@@ -90,7 +91,7 @@
         "forecast_p90": 486.56369965996777,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 08:00:00+01:00",
@@ -99,7 +100,7 @@
         "forecast_p90": 519.3811996599677,
         "charge_mw": 0.0,
         "discharge_mw": 1.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 09:00:00+01:00",
@@ -108,7 +109,7 @@
         "forecast_p90": 489.76869965996775,
         "charge_mw": 0.0,
         "discharge_mw": 0.71,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 10:00:00+01:00",
@@ -117,7 +118,7 @@
         "forecast_p90": 449.59869965996774,
         "charge_mw": 0.0,
         "discharge_mw": -0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 11:00:00+01:00",
@@ -126,7 +127,7 @@
         "forecast_p90": 421.3686996599678,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 12:00:00+01:00",
@@ -135,7 +136,7 @@
         "forecast_p90": 379.41619965996773,
         "charge_mw": 1.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 13:00:00+01:00",
@@ -144,7 +145,7 @@
         "forecast_p90": 383.2386996599678,
         "charge_mw": 0.8947368421052632,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 14:00:00+01:00",
@@ -153,7 +154,7 @@
         "forecast_p90": 401.3086996599677,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 15:00:00+01:00",
@@ -162,7 +163,7 @@
         "forecast_p90": 443.94619965996776,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 16:00:00+01:00",
@@ -171,7 +172,7 @@
         "forecast_p90": 508.6711996599677,
         "charge_mw": 0.0,
         "discharge_mw": 1.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 17:00:00+01:00",
@@ -180,7 +181,7 @@
         "forecast_p90": 475.5111996599678,
         "charge_mw": 0.0,
         "discharge_mw": 0.71,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 18:00:00+01:00",
@@ -189,7 +190,7 @@
         "forecast_p90": 433.7311996599678,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 19:00:00+01:00",
@@ -198,7 +199,7 @@
         "forecast_p90": 400.34119965996774,
         "charge_mw": 0.0,
         "discharge_mw": -0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 20:00:00+01:00",
@@ -207,7 +208,7 @@
         "forecast_p90": 338.4186996599678,
         "charge_mw": -0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 21:00:00+01:00",
@@ -216,7 +217,7 @@
         "forecast_p90": 306.26119965996776,
         "charge_mw": 0.0,
         "discharge_mw": -0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 22:00:00+01:00",
@@ -225,7 +226,7 @@
         "forecast_p90": 277.33869965996774,
         "charge_mw": 0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       },
       {
         "ts": "2026-11-11 23:00:00+01:00",
@@ -234,7 +235,7 @@
         "forecast_p90": 244.98619965996778,
         "charge_mw": -0.0,
         "discharge_mw": 0.0,
-        "note": "forecast_lp"
+        "note": "cost_aware_lp"
       }
     ]
   },
@@ -254,16 +255,81 @@
   },
   "paper_pnl": {
     "battery": "1 MW / 2 MWh",
-    "ml_exante_lp_cash_eur": 3352.2293289473664,
-    "threshold_cash_eur": 1051.2745770256226,
-    "perfect_foresight_cash_eur": 3853.2305473684205,
-    "ml_capture_vs_pf_pct": 86.99789145076682,
+    "apply_costs": true,
+    "cost_aware_schedule": true,
+    "costs": {
+      "fee_eur_per_mwh": 0.05,
+      "slippage_eur_per_mwh": 0.5,
+      "degradation_eur_per_mwh": 5.0,
+      "label": "base",
+      "assumed": true,
+      "sources": [
+        {
+          "id": "A-C1",
+          "item": "Trading fee EUR/MWh",
+          "assumed_default": 0.05,
+          "range_eur_mwh": [
+            0.04,
+            0.1
+          ],
+          "note": "Order-of-magnitude from historical EPEX SPOT published trading fees (DE-AT-CH Day-Ahead Auction ~0.04 \u20ac/MWh; continuous intraday ~0.10 \u20ac/MWh in older public price lists). Current member fee schedules change; treat as ASSUMED.",
+          "source": "EPEX SPOT public price lists / fee documentation (no DOI)",
+          "doi": null
+        },
+        {
+          "id": "A-C2",
+          "item": "Slippage / bid-ask proxy EUR/MWh",
+          "assumed_default": 0.5,
+          "range_eur_mwh": [
+            0.0,
+            2.0
+          ],
+          "note": "Day-ahead SDAC is a single clearing price (no classic bid-ask). This term is an ASSUMED conservatism for imperfect fills / modelling error when paper-trading against the published clearing series. Set 0 for pure auction-fill assumption.",
+          "source": "Modelling choice (ASSUMED); not an exchange fee",
+          "doi": null
+        },
+        {
+          "id": "A-C3",
+          "item": "Battery degradation EUR/MWh throughput",
+          "assumed_default": 5.0,
+          "range_eur_mwh": [
+            1.0,
+            10.0
+          ],
+          "note": "Linear wear proxy already used in gridpilot-core BatteryConfig. Order-of-magnitude aligned with cycling/degradation cost discussion in grid-storage arbitrage literature.",
+          "source": "Kies et al. (2018) joint arbitrage\u2013degradation framing; NREL ATB cost context",
+          "doi": "10.1088/1742-6596/977/1/012005"
+        }
+      ]
+    },
+    "ml_exante_lp_cash_eur": 3301.2026447368394,
+    "threshold_cash_eur": 1028.2224811114952,
+    "perfect_foresight_cash_eur": 3806.169073684209,
+    "ml_capture_vs_pf_pct": 86.73294803326792,
+    "gross": {
+      "ml_exante_lp_cash_eur": 3816.1082763157874,
+      "threshold_cash_eur": 1260.8390853358721,
+      "perfect_foresight_cash_eur": 4293.369510526314,
+      "ml_capture_vs_pf_pct": 88.8837605745232
+    },
+    "net": {
+      "ml_exante_lp_cash_eur": 3301.2026447368394,
+      "threshold_cash_eur": 1028.2224811114952,
+      "perfect_foresight_cash_eur": 3806.169073684209,
+      "ml_capture_vs_pf_pct": 86.73294803326792
+    },
     "daily": [
       {
         "day": "2026-10-28",
-        "ml_cash_eur": 487.6278999999997,
-        "pf_cash_eur": 497.1075789473683,
-        "threshold_cash_eur": 179.91765,
+        "ml_gross_eur": 518.9384263157892,
+        "ml_net_eur": 484.18374210526287,
+        "pf_gross_eur": 528.4181052631578,
+        "pf_net_eur": 493.6634210526315,
+        "threshold_gross_eur": 184.19265000000001,
+        "threshold_net_eur": 179.44740000000002,
+        "ml_cash_eur": 484.18374210526287,
+        "pf_cash_eur": 493.6634210526315,
+        "threshold_cash_eur": 179.44740000000002,
         "mae_ml": 45.41205356611294,
         "mae_naive": 94.09208333333333,
         "n_hours": 24,
@@ -271,8 +337,14 @@
       },
       {
         "day": "2026-10-29",
-        "ml_cash_eur": 439.20707499999986,
-        "pf_cash_eur": 567.0328644736842,
+        "ml_gross_eur": 475.25444342105243,
+        "ml_net_eur": 435.241864473684,
+        "pf_gross_eur": 603.0802328947368,
+        "pf_net_eur": 563.0676539473684,
+        "threshold_gross_eur": 0.0,
+        "threshold_net_eur": 0.0,
+        "ml_cash_eur": 435.241864473684,
+        "pf_cash_eur": 563.0676539473684,
         "threshold_cash_eur": 0.0,
         "mae_ml": 75.025738763513,
         "mae_naive": 65.6428125,
@@ -281,8 +353,14 @@
       },
       {
         "day": "2026-10-30",
-        "ml_cash_eur": 210.9911105263156,
-        "pf_cash_eur": 245.55906710526315,
+        "ml_gross_eur": 247.0384789473683,
+        "ml_net_eur": 207.02589999999987,
+        "pf_gross_eur": 281.60643552631575,
+        "pf_net_eur": 241.5938565789473,
+        "threshold_gross_eur": 0.0,
+        "threshold_net_eur": 0.0,
+        "ml_cash_eur": 207.02589999999987,
+        "pf_cash_eur": 241.5938565789473,
         "threshold_cash_eur": 0.0,
         "mae_ml": 29.20739965104778,
         "mae_naive": 46.9765625,
@@ -291,8 +369,14 @@
       },
       {
         "day": "2026-10-31",
-        "ml_cash_eur": 69.65251578947351,
-        "pf_cash_eur": 70.21874078947361,
+        "ml_gross_eur": 87.67619999999982,
+        "ml_net_eur": 67.66991052631562,
+        "pf_gross_eur": 100.54980921052609,
+        "pf_net_eur": 68.23613552631568,
+        "threshold_gross_eur": 0.0,
+        "threshold_net_eur": 0.0,
+        "ml_cash_eur": 67.66991052631562,
+        "pf_cash_eur": 68.23613552631568,
         "threshold_cash_eur": 0.0,
         "mae_ml": 33.38508618415117,
         "mae_naive": 221.29322916666663,
@@ -301,8 +385,14 @@
       },
       {
         "day": "2026-11-01",
-        "ml_cash_eur": 32.13524210526316,
-        "pf_cash_eur": 46.406163157894795,
+        "ml_gross_eur": 50.15892631578939,
+        "ml_net_eur": 30.152636842105153,
+        "pf_gross_eur": 64.42984736842106,
+        "pf_net_eur": 44.42355789473689,
+        "threshold_gross_eur": 0.0,
+        "threshold_net_eur": 0.0,
+        "ml_cash_eur": 30.152636842105153,
+        "pf_cash_eur": 44.42355789473689,
         "threshold_cash_eur": 0.0,
         "mae_ml": 35.59100648010301,
         "mae_naive": 242.24052083333333,
@@ -311,9 +401,15 @@
       },
       {
         "day": "2026-11-02",
-        "ml_cash_eur": 208.06716315789453,
-        "pf_cash_eur": 218.764519736842,
-        "threshold_cash_eur": 79.90262894736838,
+        "ml_gross_eur": 244.11453157894718,
+        "ml_net_eur": 204.10195263157874,
+        "pf_gross_eur": 254.81188815789463,
+        "pf_net_eur": 214.79930921052622,
+        "threshold_gross_eur": 97.92631315789475,
+        "threshold_net_eur": 77.92002368421055,
+        "ml_cash_eur": 204.10195263157874,
+        "pf_cash_eur": 214.79930921052622,
+        "threshold_cash_eur": 77.92002368421055,
         "mae_ml": 27.70169340523952,
         "mae_naive": 142.74114583333335,
         "n_hours": 24,
@@ -321,9 +417,15 @@
       },
       {
         "day": "2026-11-03",
-        "ml_cash_eur": 144.81481447368407,
-        "pf_cash_eur": 163.5066592105263,
-        "threshold_cash_eur": -84.95553552631597,
+        "ml_gross_eur": 180.8621828947367,
+        "ml_net_eur": 140.84960394736825,
+        "pf_gross_eur": 199.55402763157886,
+        "pf_net_eur": 159.54144868421037,
+        "threshold_gross_eur": -43.90816710526329,
+        "threshold_net_eur": -89.47074605263174,
+        "ml_cash_eur": 140.84960394736825,
+        "pf_cash_eur": 159.54144868421037,
+        "threshold_cash_eur": -89.47074605263174,
         "mae_ml": 37.78706907750923,
         "mae_naive": 12.798437499999999,
         "n_hours": 24,
@@ -331,9 +433,15 @@
       },
       {
         "day": "2026-11-04",
-        "ml_cash_eur": 167.46836710526304,
-        "pf_cash_eur": 177.50848421052623,
-        "threshold_cash_eur": -47.726400000000154,
+        "ml_gross_eur": 203.5157355263157,
+        "ml_net_eur": 163.50315657894728,
+        "pf_gross_eur": 213.5558526315789,
+        "pf_net_eur": 173.5432736842105,
+        "threshold_gross_eur": -7.205347368421144,
+        "threshold_net_eur": -52.18371578947375,
+        "ml_cash_eur": 163.50315657894728,
+        "pf_cash_eur": 173.5432736842105,
+        "threshold_cash_eur": -52.18371578947375,
         "mae_ml": 20.743302120385128,
         "mae_naive": 5.266770833333328,
         "n_hours": 24,
@@ -341,9 +449,15 @@
       },
       {
         "day": "2026-11-05",
-        "ml_cash_eur": 274.2394065789472,
-        "pf_cash_eur": 293.6145815789472,
-        "threshold_cash_eur": 608.7863457756233,
+        "ml_gross_eur": 310.2867749999999,
+        "ml_net_eur": 270.2741960526314,
+        "pf_gross_eur": 329.6619499999998,
+        "pf_net_eur": 289.6493710526313,
+        "threshold_gross_eur": 627.8765119806094,
+        "threshold_net_eur": 606.6864274930748,
+        "ml_cash_eur": 270.2741960526314,
+        "pf_cash_eur": 289.6493710526313,
+        "threshold_cash_eur": 606.6864274930748,
         "mae_ml": 33.710050920490374,
         "mae_naive": 23.01437499999999,
         "n_hours": 24,
@@ -351,9 +465,15 @@
       },
       {
         "day": "2026-11-06",
-        "ml_cash_eur": 243.72985526315784,
-        "pf_cash_eur": 264.96114078947363,
-        "threshold_cash_eur": 139.62402993421037,
+        "ml_gross_eur": 279.7772236842104,
+        "ml_net_eur": 239.76464473684197,
+        "pf_gross_eur": 301.0085092105262,
+        "pf_net_eur": 260.9959302631578,
+        "threshold_gross_eur": 167.16021414473673,
+        "threshold_net_eur": 136.5950496710525,
+        "ml_cash_eur": 239.76464473684197,
+        "pf_cash_eur": 260.9959302631578,
+        "threshold_cash_eur": 136.5950496710525,
         "mae_ml": 38.413816028418616,
         "mae_naive": 18.489374999999995,
         "n_hours": 24,
@@ -361,9 +481,15 @@
       },
       {
         "day": "2026-11-07",
-        "ml_cash_eur": 59.36652763157883,
-        "pf_cash_eur": 104.9365789473683,
-        "threshold_cash_eur": 73.82032368421045,
+        "ml_gross_eur": 95.41389605263149,
+        "ml_net_eur": 55.401317105263104,
+        "pf_gross_eur": 122.96026315789462,
+        "pf_net_eur": 102.95397368421041,
+        "threshold_gross_eur": 91.84400789473682,
+        "threshold_net_eur": 71.83771842105259,
+        "ml_cash_eur": 55.401317105263104,
+        "pf_cash_eur": 102.95397368421041,
+        "threshold_cash_eur": 71.83771842105259,
         "mae_ml": 22.978220556860634,
         "mae_naive": 11.406145833333326,
         "n_hours": 24,
@@ -371,9 +497,15 @@
       },
       {
         "day": "2026-11-08",
-        "ml_cash_eur": 73.5917249999998,
-        "pf_cash_eur": 123.06279210526307,
-        "threshold_cash_eur": -119.22503684210537,
+        "ml_gross_eur": 109.63909342105251,
+        "ml_net_eur": 69.62651447368393,
+        "pf_gross_eur": 141.08647631578938,
+        "pf_net_eur": 121.08018684210515,
+        "threshold_gross_eur": -96.201352631579,
+        "threshold_net_eur": -121.75764210526324,
+        "ml_cash_eur": 69.62651447368393,
+        "pf_cash_eur": 121.08018684210515,
+        "threshold_cash_eur": -121.75764210526324,
         "mae_ml": 15.301720804802903,
         "mae_naive": 20.595,
         "n_hours": 24,
@@ -381,9 +513,15 @@
       },
       {
         "day": "2026-11-09",
-        "ml_cash_eur": 535.8477052631578,
-        "pf_cash_eur": 651.212035526316,
-        "threshold_cash_eur": 445.79057105263155,
+        "ml_gross_eur": 571.8950736842103,
+        "ml_net_eur": 531.8824947368419,
+        "pf_gross_eur": 687.2594039473686,
+        "pf_net_eur": 647.246825,
+        "threshold_gross_eur": 458.81425526315786,
+        "threshold_net_eur": 444.3579657894736,
+        "ml_cash_eur": 531.8824947368419,
+        "pf_cash_eur": 647.246825,
+        "threshold_cash_eur": 444.3579657894736,
         "mae_ml": 68.07739870252875,
         "mae_naive": 92.1709375,
         "n_hours": 24,
@@ -391,9 +529,15 @@
       },
       {
         "day": "2026-11-10",
-        "ml_cash_eur": 405.4899210526314,
-        "pf_cash_eur": 429.3393407894735,
-        "threshold_cash_eur": -224.66000000000003,
+        "ml_gross_eur": 441.53728947368404,
+        "ml_net_eur": 401.52471052631546,
+        "pf_gross_eur": 465.38670921052613,
+        "pf_net_eur": 425.3741302631576,
+        "threshold_gross_eur": -219.66000000000003,
+        "threshold_net_eur": -225.21000000000004,
+        "ml_cash_eur": 401.52471052631546,
+        "pf_cash_eur": 425.3741302631576,
+        "threshold_cash_eur": -225.21000000000004,
         "mae_ml": 65.45133843141802,
         "mae_naive": 62.83656249999999,
         "n_hours": 24,
@@ -406,18 +550,19 @@
       "Ex-ante day-ahead price forecast accuracy vs realised DE-LU DA prices",
       "P10\u2013P90 interval coverage on those days",
       "Paper P&L of a day-locked schedule optimised on the P50 forecast, settled at realised DA",
-      "Capture ratio vs perfect-foresight LP on the same realised DA curve"
+      "Capture ratio vs perfect-foresight LP on the same realised DA curve",
+      "Gross vs net-of-ASSUMED-cost paper P&L (fee toggle)"
     ],
     "is_not": [
       "Real order placement or exchange connectivity",
       "Intraday / imbalance / ancillary markets",
-      "Bidding into SDAC before gate closure (DA prices for delivery day D are known after D-1 auction)",
-      "Fees, slippage, or taxes (unless added elsewhere)"
+      "Bidding into SDAC before gate closure (DA prices for delivery day D are known after D-1 auction)"
     ]
   },
   "assumptions": [
-    "ASSUMED 1 MW / 2 MWh BESS, \u03b7=0.95/0.95, SoC 5\u201395%, degradation 5 \u20ac/MWh-throughput",
+    "ASSUMED 1 MW / 2 MWh BESS, \u03b7=0.95/0.95, SoC 5\u201395%",
     "ASSUMED ML lookback 90 d, refit every 7 d, CQR \u03b1=0.20",
+    "Base costs ASSUMED: fee 0.05 \u20ac/MWh, slippage 0.50 \u20ac/MWh, degradation 5 \u20ac/MWh",
     "Day-ahead fund forecasts ffilled \u226424 h when a tail day is missing",
     "Hourly means of native 15-min Energy-Charts MTU"
   ],

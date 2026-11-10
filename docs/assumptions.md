@@ -32,3 +32,8 @@ See also `gridpilot-core/docs/assumptions.md` for runtime defaults.
 
 Cost accounting is applied to paper fills; strategies are **not** re-optimised for fees in this release.
 Conformal calibration refs (Crossref-checked): Lei et al. DOI [10.1080/01621459.2017.1307116](https://doi.org/10.1080/01621459.2017.1307116); Mondrian inductive CP DOI [10.1007/s10994-018-5754-9](https://doi.org/10.1007/s10994-018-5754-9).
+
+
+## Cost-aware dispatch (2026-11-10)
+
+The paper LP can put fee + slippage + degradation in the objective (`packages/forecast` `solve_day_lp_with_costs`) so schedules **re-optimise** rather than only paying costs after fills. Defaults remain A-C1–A-C3. Tight Mondrian regimes (hour bucket × hourly residual-load tercile × hour-of-day volatility) fall back to parent labels when a cell has fewer than 5 days in the calibration window.

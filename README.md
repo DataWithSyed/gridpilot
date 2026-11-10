@@ -61,12 +61,12 @@ flowchart TB
 - [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
 - [x] **Core runtime** ([`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core)): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
 - [x] **Data adapters** ([`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data)): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
-- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / **Mondrian** CQR; links `de-day-ahead-price-forecasting` / `de-wind-probabilistic-forecasting`
+- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / Mondrian / **tight Mondrian** CQR; **cost-aware LP**
 - [x] **Risk engine** ([`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk)): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
 - [x] **Strategy pack** ([`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies)): forecast-driven + risk-aware LP (climatology baseline)
-- [x] **Backtest harness** (`packages/backtest`): walk-forward table, **fees/slippage/degradation** cost layer, equity + coverage figures, cost-sensitivity sweep
+- [x] **Backtest harness** (`packages/backtest`): walk-forward table, fees/slippage/degradation cost layer, **cost-aware re-optimisation**, equity + coverage figures, cost-sensitivity sweep
 - [x] **Dashboard** (`packages/dashboard`): Streamlit ops view (testable package + thin `app.py`)
-- [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, forecast accuracy, next-day schedule
+- [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, **gross and net-of-cost P&L**, forecast accuracy, next-day schedule
 
 ## Repo layout
 
@@ -120,24 +120,46 @@ DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts via Energy-Chart
 
 Honest takeaway: **the ML edge survives ASSUMED fees, slippage and degradation** — even under the stress case ML stays ~1.65× threshold, and the base 90% block-bootstrap CI on Δ€/day vs threshold **excludes zero**. Mondrian/regime-conditional CQR lifts 80% coverage **72.2 → 78.2%** and moves P50 reliability **40.7 → 46.5%** (closer to nominal 50%), but still short of exact 80%/50%. Mondrian-calibrated ML cash is slightly **below** rolling-CQR ML on this window (55.5k vs 57.2k net) — calibration quality ≠ automatic PnL gain. Equity curve: [`packages/backtest/figures/equity_curve_net.png`](packages/backtest/figures/equity_curve_net.png). Coverage plot: [`packages/backtest/figures/coverage_calibration.png`](packages/backtest/figures/coverage_calibration.png). Optional FCR overlay remains a **link only** to [`de-bess-reserve-revenue-stacking`](https://github.com/DataWithSyed/de-bess-reserve-revenue-stacking) (not co-optimised here). Still **paper trading only**.
 
+### Cost-aware LP + tight Mondrian (same window, 2026-11-10)
+
+Strategies now **re-optimise** under the same base ASSUMED costs (fee 0.05 / slip 0.50 / deg 5 €/MWh) instead of applying costs only after fills. Tight Mondrian labels are hour-of-day × hourly residual-load tercile × 7-vs-60-day hour-of-day volatility, with parent-regime fallback when a cell is thin.
+
+| Metric | Value |
+|---|---|
+| 80% coverage | Raw **50.0%** → rolling CQR **72.2%** → residual-load Mondrian **76.6%** (this re-run) / **78.2%** (prior published) → **tight Mondrian 78.9%** (nominal 80%; still slightly short) |
+| Reliability (tight Mondrian) | P10 **7.8%** · P50 **46.8%** · P90 **86.8%** |
+| Forecast MAE | Tight-CQR P50 **16.07** vs rolling **16.26** vs naive **33.98** €/MWh |
+
+| Strategy (net of base costs) | Final cash € | Capture of cost-aware PF | Throughput MWh | CVaR₅% loss € | Δ€/day vs threshold (90% CI) | Δ€/day vs non-reopt ML (90% CI) |
+|---|---:|---:|---:|---:|---|---|
+| Threshold (unchanged path) | 31,944 | 39.3% | 791 | 175.43 | — | −69.3 [−82.1, −53.3] |
+| ML, accounting-only (not re-optimised) | 57,153 | 70.3% | 2,103 | 79.79 | +69.3 [53.3, 82.1] | — |
+| **ML cost-aware LP** (rolling CQR) | **64,646** | **79.5%** | 1,612 | **11.11** | **+89.8 [75.5, 103.7]** | **+20.6 [14.6, 27.6]** |
+| ML cost-aware + tight Mondrian | 64,487 | 79.3% | 1,680 | 30.87 | +89.4 [75.5, 103.7] | +20.1 [14.1, 27.8] |
+| PF, accounting-only | 72,192 | 88.8% | 2,349 | 9.23 | +110.6 [91.7, 124.9] | +41.3 [33.7, 47.3] |
+| **Cost-aware PF** (oracle) | **81,314** | **100%** | 1,947 | — | +135.6 [117.6, 151.0] | +66.4 [57.4, 74.6] |
+
+Honest takeaway: **re-optimising the LP for costs is a real gain**. Cost-aware ML earns **€7,493** more net than the previous accounting-only ML (57,153 → 64,646) — about **+20.6 €/day**, and the 90% CI excludes zero — mainly by skipping thin-spread cycles (throughput 2,103 → 1,612 MWh) and cutting CVaR₅% 79.8 → 11.1. Versus threshold the edge widens to **+89.8 [75.5, 103.7] €/day** (2.02× cash). The cost-aware oracle is also higher (81,314 vs 72,192) for the same reason, so capture is measured against that tighter bound (**79.5%**). Tight Mondrian **does improve coverage** (78.2% → **78.9%**, still short of 80%) and trims MAE slightly (16.26 → 16.07) but **does not improve P&L** versus rolling cost-aware ML (64,487 vs 64,646; CIs overlap). Calibration quality still ≠ automatic trading gain.
+
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
 
-### Near-live paper pilot (2026-11-10 Asia/Karachi)
+### Near-live paper pilot (re-run 2026-11-10 Asia/Karachi, fee toggle on)
 
-Ran against the latest published Energy-Charts DE-LU day-ahead curve (**2026-10-28 → 2026-11-10**, 14 days / 336 h). Decisions for each delivery day were locked from information available **before** that day (ex-ante P50 forecast → daily LP); fills settled at realised DA. Paper trading only — **no real orders**.
+Latest published Energy-Charts DE-LU day-ahead day is still **2026-11-10** (window **2026-10-28 → 2026-11-10**, 14 days / 336 h). Ex-ante P50 schedule, fills at realised DA. Paper trading only — **no real orders**. The fee toggle now reports **gross** (mid-price, no fee/slip/deg) and **net** of base ASSUMED costs; the net ML/PF schedules use the cost-aware LP.
 
 | Check | Result |
 |---|---|
 | Forecast MAE | ML+fund+CQR **39.20** vs naive **75.68** €/MWh |
 | Forecast RMSE | ML **46.89** vs naive **84.12** €/MWh |
-| P10–P90 coverage | **52.4%** (nominal 80%) |
-| ML ex-ante LP cash | **3,352** € (**87.0%** of PF **3,853** €) |
-| Threshold cash | 1,051 € |
-| Next delivery day | **2026-11-11** (DA not yet published): forecast-only schedule, 4h charge / 4h discharge / 16h hold, P50 mean **351.48** €/MWh |
+| P10–P90 coverage | **52.4%** (nominal 80%; short window, unchanged) |
+| ML gross / net cash | **3,816** / **3,301** € (capture **88.9%** / **86.7%** of PF) |
+| Threshold gross / net | 1,261 / 1,028 € |
+| PF gross / net | 4,293 / 3,806 € |
+| Next delivery day | **2026-11-11** (DA not yet published): forecast-only cost-aware schedule, 4h charge / 4h discharge / 16h hold, P50 mean **351.48** €/MWh |
 
-What this validates: ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP. What it does **not**: real orders, SDAC bids before gate closure, intraday/imbalance/ancillary, fees/slippage. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
+The earlier 3,352 € ML figure included core default degradation (5 €/MWh) but not fee/slippage, so it is not directly comparable to either the new gross or net columns. Coverage on this short, high-price window remains well below 80%. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
 
 ### Module highlights
 
@@ -147,8 +169,9 @@ What this validates: ex-ante DA forecast skill, interval coverage, paper capture
 | [`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data) | Energy-Charts adapters + optional ENTSO-E env token |
 | [`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk) | Block-bootstrap VaR/CVaR hooks |
 | [`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies) | Climatology ForecastDrivenLP / RiskAwareForecastLP |
-| `packages/forecast` | Fundamentals + rolling / Mondrian CQR; long-window + costs eval scripts |
-| `packages/backtest` | Cost layer, sensitivity CSV, equity + coverage figures, bootstrap CI |
+| `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; long-window eval |
+| `packages/backtest` | Cost layer, cost-aware comparison CSV, equity + coverage figures |
+| `packages/live` | Near-live paper pilot with gross/net fee toggle |
 | `packages/dashboard` | Streamlit: net table, calibration, bootstrap CIs, equity image |
 
 ## Quick start
@@ -169,6 +192,8 @@ pytest -q packages/forecast packages/backtest packages/dashboard
 # python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
 python packages/forecast/scripts/run_long_window_eval.py
 python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
+python packages/forecast/scripts/run_cost_aware_tight_mondrian.py  # cost-aware LP + tight Mondrian
+python packages/live/scripts/run_live_pilot.py  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
 ```

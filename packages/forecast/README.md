@@ -42,3 +42,7 @@ MIT. Market data: Energy-Charts / SMARD — CC BY 4.0.
 ## Mondrian CQR + costs eval
 
 `scripts/run_costs_mondrian_equity.py` compares rolling vs Mondrian CQR coverage and writes net-of-cost backtests (paper only).
+
+## Cost-aware LP and tight Mondrian
+
+`cost_aware_lp.py` re-optimises daily dispatch under `ExecutionCosts`. Tight Mondrian is selected with `calibrator_kind='mondrian'` and `mondrian_mode='tight'`. Eval: `scripts/run_cost_aware_tight_mondrian.py`.

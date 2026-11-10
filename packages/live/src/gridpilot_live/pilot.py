@@ -16,6 +16,8 @@ from gridpilot_forecast.forecaster import WalkForwardQuantileForecast, evaluate_
 from gridpilot_forecast.fundamentals import build_fundamentals_panels
 from gridpilot_forecast.models import NaiveDayAhead, mae
 from gridpilot_strategies.forecast_lp import _solve_day_lp
+from gridpilot_backtest.costs import ExecutionCosts, ZERO_COSTS, apply_costs_to_actions
+from gridpilot_forecast.cost_aware_lp import solve_day_lp_with_costs
 
 from gridpilot_live.data import latest_published_price_day, load_or_extend_fundamentals
 
@@ -27,6 +29,9 @@ class LivePilotConfig:
     refit_every_days: int = 7
     power_mw: float = 1.0
     energy_mwh: float = 2.0
+    apply_costs: bool = True  # fee toggle: report gross + net; use cost-aware LP when True
+    cost_aware_schedule: bool = True
+    costs: ExecutionCosts | None = None
     base_cache: Path | None = None
     live_cache: Path | None = None
     events_path: Path | None = None
@@ -52,6 +57,19 @@ def _price_series_berlin(df: pd.DataFrame) -> pd.Series:
     return s
 
 
+def _step_cash(grid_in: float, grid_out: float, price: float, costs: ExecutionCosts | None, deg_fallback: float) -> tuple[float, float]:
+    """Return (gross_mid_cash, net_cash) for one interval."""
+    gross = -grid_in * price + grid_out * price
+    if costs is None:
+        net = gross - (grid_in + grid_out) * deg_fallback
+    else:
+        buy = price + costs.slippage_eur_per_mwh
+        sell = price - costs.slippage_eur_per_mwh
+        thr = grid_in + grid_out
+        net = -grid_in * buy + grid_out * sell - thr * (costs.fee_eur_per_mwh + costs.degradation_eur_per_mwh)
+    return gross, net
+
+
 def _settle_plan(
     plan: dict[pd.Timestamp, Any],
     prices: pd.Series,
@@ -59,8 +77,15 @@ def _settle_plan(
     state: BatteryState,
     *,
     dt_h: float = 1.0,
-) -> tuple[BatteryState, float, list[dict]]:
-    cash = 0.0
+    costs: ExecutionCosts | None = None,
+) -> tuple[BatteryState, float, list[dict], float]:
+    """Settle a day plan. Returns (state, net_cash, rows, gross_cash).
+
+    Gross is mid-price P&L with no fee/slippage/degradation. Net uses ``costs``
+    if provided, otherwise only ``battery.degradation_eur_per_mwh`` (legacy).
+    """
+    net_cash = 0.0
+    gross_cash = 0.0
     rows = []
     for ts, px in prices.items():
         dec = plan.get(ts)
@@ -69,7 +94,6 @@ def _settle_plan(
             note = "missing_plan"
         else:
             c_mw, d_mw, note = float(dec.charge_mw), float(dec.discharge_mw), dec.note
-        # Clip to battery feasibility locally (same spirit as risk manager)
         c_mw = max(0.0, min(c_mw, battery.power_mw))
         d_mw = max(0.0, min(d_mw, battery.power_mw))
         if c_mw > 0 and d_mw > 0:
@@ -77,9 +101,9 @@ def _settle_plan(
         state, grid_in, grid_out = apply_dispatch(
             battery, state, charge_mw=c_mw, discharge_mw=d_mw, dt_h=dt_h
         )
-        cash -= grid_in * float(px)
-        cash += grid_out * float(px)
-        cash -= (grid_in + grid_out) * battery.degradation_eur_per_mwh
+        gross, net = _step_cash(grid_in, grid_out, float(px), costs, battery.degradation_eur_per_mwh)
+        gross_cash += gross
+        net_cash += net
         rows.append(
             {
                 "ts": str(ts),
@@ -88,14 +112,14 @@ def _settle_plan(
                 "discharge_mw": d_mw,
                 "grid_in_mwh": grid_in,
                 "grid_out_mwh": grid_out,
-                "cash_step": -grid_in * float(px)
-                + grid_out * float(px)
-                - (grid_in + grid_out) * battery.degradation_eur_per_mwh,
+                "cash_step": net,
+                "cash_step_gross": gross,
+                "cash_step_net": net,
                 "soc": state.soc,
                 "note": note,
             }
         )
-    return state, cash, rows
+    return state, net_cash, rows, gross_cash
 
 
 def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
@@ -151,16 +175,26 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
     )
     naive = NaiveDayAhead()
 
-    battery = BatteryConfig(power_mw=cfg.power_mw, energy_mwh=cfg.energy_mwh)
-    state_ml = BatteryState.from_config(battery)
-    state_pf = BatteryState.from_config(battery)
+    costs = cfg.costs or ExecutionCosts()
+    # Degradation lives in ExecutionCosts when the fee toggle is on, so the
+    # battery wear term is not applied twice inside apply_dispatch accounting.
+    battery = BatteryConfig(
+        power_mw=cfg.power_mw,
+        energy_mwh=cfg.energy_mwh,
+        degradation_eur_per_mwh=0.0,
+    )
+    state_ml_g = BatteryState.from_config(battery)
+    state_ml_n = BatteryState.from_config(battery)
+    state_pf_g = BatteryState.from_config(battery)
+    state_pf_n = BatteryState.from_config(battery)
     state_th = BatteryState.from_config(battery)
     thr = ThresholdArbitrage()
     pf_strat = PerfectForesightDaily()
+    use_cost_lp = bool(cfg.apply_costs and cfg.cost_aware_schedule)
 
-    ml_cash = 0.0
-    pf_cash = 0.0
-    th_cash = 0.0
+    ml_gross = ml_net = 0.0
+    pf_gross = pf_net = 0.0
+    th_gross = th_net = 0.0
     mae_ml: list[float] = []
     mae_nv: list[float] = []
     rmse_ml: list[float] = []
@@ -172,19 +206,16 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
 
     for day in eval_days:
         day = pd.Timestamp(day).normalize()
-        # History strictly before delivery day (ex-ante)
         hist = prices[prices.index.date < day.date()]
         if len(hist) < 24 * 21:
             continue
         day_prices = prices[prices.index.date == day.date()]
         if len(day_prices) < 20:
             continue
-        # Align to 24h index when possible
         idx = day_prices.index
         pred = fc.predict_quantiles_for_day(hist, day)
         npred = naive.predict_day(panel_all, day)
         y = day_prices.to_numpy(float)
-        # Map predictions to actual hours present
         hours = [ts.hour for ts in day_prices.index]
         p50 = np.array([pred[0.50][h] for h in hours], float)
         p10 = np.array([pred[0.10][h] for h in hours], float)
@@ -201,19 +232,39 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
         y_by_day[day] = y
         pred_by_day[day] = {0.10: p10, 0.50: p50, 0.90: p90}
 
-        # Ex-ante ML schedule: LP on forecast P50 path (no realised prices in path)
         fc_path = pd.Series(p50, index=idx, dtype=float)
-        plan_ml = _solve_day_lp(fc_path, battery, state_ml, dt_h=1.0)
-        state_ml, cash_d, fills = _settle_plan(plan_ml, day_prices, battery, state_ml)
-        ml_cash += cash_d
+        plan_ml_g = _solve_day_lp(fc_path, battery, state_ml_g, dt_h=1.0)
+        state_ml_g, _net_ig, fills_g, cash_ml_g = _settle_plan(
+            plan_ml_g, day_prices, battery, state_ml_g, costs=ZERO_COSTS
+        )
+        if use_cost_lp:
+            plan_ml_n = solve_day_lp_with_costs(fc_path, battery, state_ml_n, costs, dt_h=1.0)
+        else:
+            plan_ml_n = plan_ml_g
+        settle_costs = costs if cfg.apply_costs else ZERO_COSTS
+        state_ml_n, cash_ml_n, fills, cash_ml_n_gross = _settle_plan(
+            plan_ml_n, day_prices, battery, state_ml_n, costs=settle_costs
+        )
+        ml_gross += cash_ml_g
+        ml_net += cash_ml_n
 
-        # Perfect foresight on realised DA (oracle once DA known)
-        plan_pf = pf_strat._solve_day(day_prices, battery, state_pf)
-        state_pf, cash_pf, _ = _settle_plan(plan_pf, day_prices, battery, state_pf)
-        pf_cash += cash_pf
+        plan_pf_g = pf_strat._solve_day(day_prices, battery, state_pf_g)
+        state_pf_g, _, _, cash_pf_g = _settle_plan(
+            plan_pf_g, day_prices, battery, state_pf_g, costs=ZERO_COSTS
+        )
+        if use_cost_lp:
+            plan_pf_n = solve_day_lp_with_costs(
+                day_prices, battery, state_pf_n, costs, dt_h=1.0, note="cost_aware_pf"
+            )
+        else:
+            plan_pf_n = plan_pf_g
+        state_pf_n, cash_pf_n, _, _ = _settle_plan(
+            plan_pf_n, day_prices, battery, state_pf_n, costs=settle_costs
+        )
+        pf_gross += cash_pf_g
+        pf_net += cash_pf_n
 
-        # Threshold: hour-by-hour causal on history growing through the day
-        cash_th_day = 0.0
+        cash_th_g = cash_th_n = 0.0
         hist_th = hist.copy()
         for ts, px in day_prices.items():
             hist_th = pd.concat([hist_th, pd.Series({ts: float(px)})])
@@ -228,15 +279,23 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
             state_th, gin, gout = apply_dispatch(
                 battery, state_th, charge_mw=dec.charge_mw, discharge_mw=dec.discharge_mw, dt_h=1.0
             )
-            step = -gin * float(px) + gout * float(px) - (gin + gout) * battery.degradation_eur_per_mwh
-            cash_th_day += step
-        th_cash += cash_th_day
+            g, n = _step_cash(gin, gout, float(px), settle_costs, 0.0)
+            cash_th_g += -gin * float(px) + gout * float(px)
+            cash_th_n += n
+        th_gross += cash_th_g
+        th_net += cash_th_n
 
         day_row = {
             "day": str(day.date()),
-            "ml_cash_eur": cash_d,
-            "pf_cash_eur": cash_pf,
-            "threshold_cash_eur": cash_th_day,
+            "ml_gross_eur": cash_ml_g,
+            "ml_net_eur": cash_ml_n,
+            "pf_gross_eur": cash_pf_g,
+            "pf_net_eur": cash_pf_n,
+            "threshold_gross_eur": cash_th_g,
+            "threshold_net_eur": cash_th_n,
+            "ml_cash_eur": cash_ml_n if cfg.apply_costs else cash_ml_g,
+            "pf_cash_eur": cash_pf_n if cfg.apply_costs else cash_pf_g,
+            "threshold_cash_eur": cash_th_n if cfg.apply_costs else cash_th_g,
             "mae_ml": mae_ml[-1],
             "mae_naive": mae_nv[-1],
             "n_hours": int(len(day_prices)),
@@ -247,9 +306,6 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
         for fill in fills:
             event_lines.append(json.dumps({"type": "fill", "day": str(day.date()), **fill}))
 
-    # Next-day schedule: first Berlin day AFTER the eval window that we can plan for.
-    # If DA prices for that day are already in the feed, we still build the schedule
-    # from the ex-ante forecast (and report that DA is published separately).
     tomorrow = (eval_end + pd.Timedelta(days=1)).tz_localize(None).normalize()
     hist_tm = prices[prices.index.date < tomorrow.date()]
     tm_idx = _berlin_day_index(tomorrow)
@@ -257,8 +313,12 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
     tm_da_published = len(tm_prices) >= 20
     tm_pred = fc.predict_quantiles_for_day(hist_tm, tomorrow)
     tm_path = pd.Series(tm_pred[0.50], index=tm_idx, dtype=float)
-    # Use final ML SoC from eval window as starting SoC for tomorrow plan
-    plan_tm = _solve_day_lp(tm_path, battery, state_ml, dt_h=1.0)
+    if use_cost_lp:
+        plan_tm = solve_day_lp_with_costs(tm_path, battery, state_ml_n, costs, dt_h=1.0)
+        start_soc = state_ml_n.soc
+    else:
+        plan_tm = _solve_day_lp(tm_path, battery, state_ml_g, dt_h=1.0)
+        start_soc = state_ml_g.soc
     schedule = []
     for ts in tm_idx:
         dec = plan_tm.get(ts)
@@ -281,13 +341,19 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
                 "n_hours": len(schedule),
                 "charge_hours": sum(1 for r in schedule if r["charge_mw"] > 1e-6),
                 "discharge_hours": sum(1 for r in schedule if r["discharge_mw"] > 1e-6),
+                "cost_aware": use_cost_lp,
             }
         )
     )
     events_path.write_text("\n".join(event_lines) + ("\n" if event_lines else ""), encoding="utf-8")
 
     cal = evaluate_calibration(y_by_day, pred_by_day)
-    capture = (100.0 * ml_cash / pf_cash) if pf_cash else None
+    cap_g = (100.0 * ml_gross / pf_gross) if pf_gross else None
+    cap_n = (100.0 * ml_net / pf_net) if pf_net else None
+    headline_ml = ml_net if cfg.apply_costs else ml_gross
+    headline_pf = pf_net if cfg.apply_costs else pf_gross
+    headline_th = th_net if cfg.apply_costs else th_gross
+    headline_cap = cap_n if cfg.apply_costs else cap_g
     summary: dict[str, Any] = {
         "run_at_asia_karachi": str(pd.Timestamp.now(tz="Asia/Karachi")),
         "data_source": "Energy-Charts DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts (CC BY 4.0)",
@@ -301,6 +367,7 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
         "tomorrow": {
             "delivery_day": str(tomorrow.date()),
             "da_prices_published": bool(tm_da_published),
+            "cost_aware_schedule": use_cost_lp,
             "note": (
                 (
                     "DA prices for this delivery day are already published; the schedule "
@@ -321,7 +388,7 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
             "hold_hours": sum(
                 1 for r in schedule if r["charge_mw"] <= 1e-6 and r["discharge_mw"] <= 1e-6
             ),
-            "starting_soc": float(state_ml.soc),
+            "starting_soc": float(start_soc),
             "schedule": schedule,
         },
         "accuracy": {
@@ -336,10 +403,25 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
         },
         "paper_pnl": {
             "battery": f"{cfg.power_mw:g} MW / {cfg.energy_mwh:g} MWh",
-            "ml_exante_lp_cash_eur": float(ml_cash),
-            "threshold_cash_eur": float(th_cash),
-            "perfect_foresight_cash_eur": float(pf_cash),
-            "ml_capture_vs_pf_pct": float(capture) if capture is not None else None,
+            "apply_costs": bool(cfg.apply_costs),
+            "cost_aware_schedule": use_cost_lp,
+            "costs": costs.to_dict() if cfg.apply_costs else None,
+            "ml_exante_lp_cash_eur": float(headline_ml),
+            "threshold_cash_eur": float(headline_th),
+            "perfect_foresight_cash_eur": float(headline_pf),
+            "ml_capture_vs_pf_pct": float(headline_cap) if headline_cap is not None else None,
+            "gross": {
+                "ml_exante_lp_cash_eur": float(ml_gross),
+                "threshold_cash_eur": float(th_gross),
+                "perfect_foresight_cash_eur": float(pf_gross),
+                "ml_capture_vs_pf_pct": float(cap_g) if cap_g is not None else None,
+            },
+            "net": {
+                "ml_exante_lp_cash_eur": float(ml_net),
+                "threshold_cash_eur": float(th_net),
+                "perfect_foresight_cash_eur": float(pf_net),
+                "ml_capture_vs_pf_pct": float(cap_n) if cap_n is not None else None,
+            },
             "daily": day_rows,
         },
         "validation_scope": {
@@ -348,17 +430,18 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
                 "P10–P90 interval coverage on those days",
                 "Paper P&L of a day-locked schedule optimised on the P50 forecast, settled at realised DA",
                 "Capture ratio vs perfect-foresight LP on the same realised DA curve",
+                "Gross vs net-of-ASSUMED-cost paper P&L (fee toggle)",
             ],
             "is_not": [
                 "Real order placement or exchange connectivity",
                 "Intraday / imbalance / ancillary markets",
                 "Bidding into SDAC before gate closure (DA prices for delivery day D are known after D-1 auction)",
-                "Fees, slippage, or taxes (unless added elsewhere)",
             ],
         },
         "assumptions": [
-            "ASSUMED 1 MW / 2 MWh BESS, η=0.95/0.95, SoC 5–95%, degradation 5 €/MWh-throughput",
+            "ASSUMED 1 MW / 2 MWh BESS, η=0.95/0.95, SoC 5–95%",
             "ASSUMED ML lookback 90 d, refit every 7 d, CQR α=0.20",
+            "Base costs ASSUMED: fee 0.05 €/MWh, slippage 0.50 €/MWh, degradation 5 €/MWh" if cfg.apply_costs else "Fee toggle off: gross mid-price P&L only",
             "Day-ahead fund forecasts ffilled ≤24 h when a tail day is missing",
             "Hourly means of native 15-min Energy-Charts MTU",
         ],
@@ -369,7 +452,6 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
     (summary_dir / "live_pilot_summary.json").write_text(
         json.dumps(summary, indent=2, default=str) + "\n", encoding="utf-8"
     )
-    # Short markdown for humans
     acc = summary["accuracy"]
     pnl = summary["paper_pnl"]
     tm = summary["tomorrow"]
@@ -379,6 +461,7 @@ Run at (Asia/Karachi): **{summary['run_at_asia_karachi']}**
 
 Data: Energy-Charts DE-LU day-ahead + DE day-ahead load/solar/wind (CC BY 4.0).
 Latest published DA price day: **{summary['latest_published_price_day']}**.
+Fee toggle: **{'on' if cfg.apply_costs else 'off'}** (cost-aware LP: {use_cost_lp}).
 
 ## Accuracy (ex-ante vs realised DA)
 
@@ -391,11 +474,13 @@ P10–P90 coverage: **{(acc['coverage_p10_p90'] or 0)*100:.1f}%** (nominal 80%),
 
 ## Paper P&L (1 MW / 2 MWh, day-locked ex-ante ML schedule)
 
-| Strategy | Cash € | Capture of PF |
-|---|---:|---:|
-| ML ex-ante LP (P50 forecast) | {pnl['ml_exante_lp_cash_eur']:.2f} | {pnl['ml_capture_vs_pf_pct']:.1f}% |
-| Threshold (causal) | {pnl['threshold_cash_eur']:.2f} | — |
-| Perfect foresight (oracle) | {pnl['perfect_foresight_cash_eur']:.2f} | 100% |
+| Strategy | Gross € | Net of ASSUMED costs € | Capture of PF (gross / net) |
+|---|---:|---:|---|
+| ML ex-ante LP (P50; net uses cost-aware LP when toggle on) | {pnl['gross']['ml_exante_lp_cash_eur']:.2f} | {pnl['net']['ml_exante_lp_cash_eur']:.2f} | {pnl['gross']['ml_capture_vs_pf_pct']:.1f}% / {pnl['net']['ml_capture_vs_pf_pct']:.1f}% |
+| Threshold (causal) | {pnl['gross']['threshold_cash_eur']:.2f} | {pnl['net']['threshold_cash_eur']:.2f} | — |
+| Perfect foresight (oracle) | {pnl['gross']['perfect_foresight_cash_eur']:.2f} | {pnl['net']['perfect_foresight_cash_eur']:.2f} | 100% |
+
+Gross is mid-price P&L with no fee/slippage/degradation. Net uses ASSUMED fee 0.05, slippage 0.50, degradation 5 €/MWh. Previous pilots included core default degradation (5 €/MWh) but not fee/slippage.
 
 ## Tomorrow schedule ({tm['delivery_day']})
 
@@ -405,9 +490,9 @@ Charge hours: {tm['charge_hours']} · Discharge hours: {tm['discharge_hours']} �
 
 ## What this validates / does not
 
-**Validates:** ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP vs oracle on realised DA.
+**Validates:** ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP vs oracle on realised DA, gross vs net-of-ASSUMED-cost paper P&L.
 
-**Does not validate:** real orders, SDAC bidding before gate closure, intraday/imbalance/ancillary, fees/slippage.
+**Does not validate:** real orders, SDAC bidding before gate closure, intraday/imbalance/ancillary.
 """
     (summary_dir / "LIVE_PILOT.md").write_text(md, encoding="utf-8")
     summary["_markdown"] = md

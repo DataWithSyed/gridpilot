@@ -28,6 +28,7 @@ class MLForecastDrivenLP:
     use_fundamentals: bool = True
     calibrate: bool = True
     calibrator_kind: str = "rolling"
+    mondrian_mode: str = "rl_daily"
     fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
@@ -40,6 +41,7 @@ class MLForecastDrivenLP:
             use_fundamentals=self.use_fundamentals,
             calibrate=self.calibrate,
             calibrator_kind=self.calibrator_kind,
+            mondrian_mode=self.mondrian_mode,
             fundamentals=self.fundamentals,
         )
         self._inner = ForecastDrivenLP(
@@ -65,6 +67,7 @@ class MLRiskAwareForecastLP:
     use_fundamentals: bool = True
     calibrate: bool = True
     calibrator_kind: str = "rolling"
+    mondrian_mode: str = "rl_daily"
     fundamentals: dict | None = field(default=None, repr=False)
     _inner: object | None = field(default=None, repr=False)
 
@@ -77,6 +80,7 @@ class MLRiskAwareForecastLP:
             use_fundamentals=self.use_fundamentals,
             calibrate=self.calibrate,
             calibrator_kind=self.calibrator_kind,
+            mondrian_mode=self.mondrian_mode,
             fundamentals=self.fundamentals,
         )
         self._inner = RiskAwareForecastLP(

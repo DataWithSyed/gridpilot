@@ -9,6 +9,7 @@ import pandas as pd
 from gridpilot_forecast.conformal import (
     MondrianAsymmetricCQR,
     RollingCQR,
+    build_tight_hour_regimes,
     coverage,
     hour_bucket,
     reliability_table,
@@ -43,6 +44,7 @@ class WalkForwardQuantileForecast:
     use_fundamentals: bool = False
     calibrate: bool = True
     calibrator_kind: str = "rolling"  # rolling | mondrian
+    mondrian_mode: str = "rl_daily"  # rl_daily | tight
     conformal_window_days: int = 60
     conformal_delay: int = 2
     model_name: str = "ensemble_lear_qgbm"
@@ -113,26 +115,49 @@ class WalkForwardQuantileForecast:
         self._model = m
         self._last_fit_day = delivery_day
 
-    def _ensure_rl_edges(self) -> tuple[float, float] | None:
-        """Tercile edges of daily mean residual-load forecast (ex-ante panel only)."""
-        edges = getattr(self, "_rl_edges", None)
-        if edges is not None:
-            return edges
+    def _ensure_rl_edges(self, *, hourly: bool = False) -> tuple[float, float] | None:
+        """Tercile edges of residual-load forecast (daily mean or all hours)."""
+        attr = "_rl_edges_hourly" if hourly else "_rl_edges"
+        edges = getattr(self, attr, None)
+        if edges is not None or attr in self.__dict__:
+            return getattr(self, attr)
         if not self.fundamentals or "residual_load_fc" not in self.fundamentals:
-            self._rl_edges = None
+            setattr(self, attr, None)
             return None
         rl = self.fundamentals["residual_load_fc"]
-        daily = rl.mean(axis=1).dropna()
-        if len(daily) < 30:
-            self._rl_edges = None
-            return None
-        q33, q66 = np.nanpercentile(daily.to_numpy(float), [33.3, 66.6])
-        self._rl_edges = (float(q33), float(q66))
-        return self._rl_edges
+        if hourly:
+            vals = rl.to_numpy(float).ravel()
+            vals = vals[np.isfinite(vals)]
+            if len(vals) < 24 * 30:
+                setattr(self, attr, None)
+                return None
+        else:
+            daily = rl.mean(axis=1).dropna()
+            if len(daily) < 30:
+                setattr(self, attr, None)
+                return None
+            vals = daily.to_numpy(float)
+        q33, q66 = np.nanpercentile(vals, [33.3, 66.6])
+        setattr(self, attr, (float(q33), float(q66)))
+        return getattr(self, attr)
 
     def _mondrian_regime_for_day(self, day: pd.Timestamp, n_hours: int) -> tuple[str, np.ndarray | None]:
         """Return (day_regime, hour_regimes_or_None)."""
-        edges = self._ensure_rl_edges()
+        if getattr(self, "mondrian_mode", "rl_daily") == "tight":
+            edges = self._ensure_rl_edges(hourly=True)
+            residual = None
+            if edges is not None and self.fundamentals and "residual_load_fc" in self.fundamentals:
+                rl = self.fundamentals["residual_load_fc"]
+                if day in rl.index:
+                    residual = np.asarray(rl.loc[day].to_numpy(float)).ravel()
+                    if residual.size < n_hours:
+                        residual = np.pad(residual, (0, n_hours - residual.size), constant_values=np.nan)
+                    residual = residual[:n_hours]
+            hour_regs = build_tight_hour_regimes(
+                day, n_hours, price_panel=self._panel, residual_hourly=residual, rl_edges=edges
+            )
+            return "tight", hour_regs
+        edges = self._ensure_rl_edges(hourly=False)
         if edges is not None and self.fundamentals and "residual_load_fc" in self.fundamentals:
             rl = self.fundamentals["residual_load_fc"]
             if day in rl.index:
