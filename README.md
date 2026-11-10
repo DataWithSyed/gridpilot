@@ -85,6 +85,7 @@ gridpilot/
   packages/backtest/     # comparison harness, sourced fees, equity
   packages/dashboard/    # Streamlit UI
   packages/live/         # near-live paper pilot + accuracy check
+  packages/simulator/    # real-time paper replay, dashboard, demo report
   results/live/          # committed live-pilot summaries
   docs/                  # methods, assumptions, fees, limitations
 ```
@@ -196,6 +197,7 @@ Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1
 | `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; long-window eval |
 | `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
 | `packages/live` | Near-live paper pilot with gross/net fee toggle |
+| `packages/simulator` | Real-time paper replay, Streamlit dashboard, HTML/PNG report |
 | `packages/dashboard` | Streamlit: net table, calibration, bootstrap CIs, equity image |
 
 ## Quick start
@@ -215,6 +217,8 @@ python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs source
 python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
+gridpilot-sim run --scenario normal --speed 0 --seed 0  # paper replay
+gridpilot-sim dashboard
 ```
 
 ## Related work
@@ -230,6 +234,7 @@ See [`docs/related-work.md`](docs/related-work.md). Highlights:
 
 - [`docs/methods.md`](docs/methods.md) — literature anchors (DOIs)
 - [`docs/fees.md`](docs/fees.md) — sourced vs assumed market fees (retrieval 2026-11-10)
+- [`docs/SIMULATOR.md`](docs/SIMULATOR.md) — paper market simulator, how to run, limitations
 - [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
 - [`docs/limitations.md`](docs/limitations.md) — honest scope limits
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help

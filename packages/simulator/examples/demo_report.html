@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>GridPilot paper simulator report</title>
+<style>
+ body { font-family: sans-serif; max-width: 960px; margin: 2rem auto; color: #222; }
+ .warn { background: #fff3cd; border: 1px solid #e6c35c; padding: 0.8rem 1rem; }
+ table { border-collapse: collapse; width: 100%; }
+ th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; }
+ img { max-width: 100%; height: auto; }
+</style></head>
+<body>
+<h1>GridPilot paper simulator</h1>
+<div class="warn"><strong>Paper trading only.</strong> No exchange connectivity, no real orders,
+no real-money performance. Day-ahead only. Perfect foresight is an oracle with lookahead;
+the agent never sees it.</div>
+<p><strong>SYNTHETIC scenario — not Energy-Charts market data.</strong></p>
+<p>Scenario: <strong>normal</strong> (synthetic) — SYNTHETIC quiet winter week (labelled; not Energy-Charts).</p>
+<p>Seed 0 · ticks 168 · gate closure 12:00 Europe/Berlin on D-1; no lookahead into delivery-day prices</p>
+<h2>Paper P&amp;L</h2>
+<table><tr><th>ml gross eur</th><td>181.77</td></tr><tr><th>ml net eur</th><td>150.37</td></tr><tr><th>threshold gross eur</th><td>0.00</td></tr><tr><th>threshold net eur</th><td>0.00</td></tr><tr><th>perfect foresight gross eur</th><td>668.22</td></tr><tr><th>perfect foresight net eur</th><td>546.42</td></tr></table>
+<p>Capture of perfect-foresight net: 27.518258985479815</p>
+<p>Kill-switch events: 0.</p>
+<h2>Dashboard snapshot</h2>
+<p><img src="demo_dashboard.png" alt="Demo dashboard snapshot"/></p>
+<h2>Honest limitations</h2>
+<ul><li>Paper trading only — no exchange connectivity, no real orders.</li><li>Day-ahead only; no intraday or imbalance (reBAP) simulation.</li><li>Sourced fee preset is ECC DA clearing only; current EPEX trading fee is not in the public price list; degradation is still ASSUMED.</li><li>Perfect foresight is an oracle baseline with lookahead; the agent never sees it.</li><li>These figures are not real-money performance.</li></ul>
+</body></html>
