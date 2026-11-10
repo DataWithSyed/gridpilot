@@ -27,7 +27,14 @@ for p in (
     if p.exists() and str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from gridpilot_backtest.costs import COST_SOURCES, ExecutionCosts, ZERO_COSTS, apply_costs_to_actions
+from gridpilot_backtest.costs import (
+    COST_SOURCES,
+    ExecutionCosts,
+    ZERO_COSTS,
+    apply_costs_to_actions,
+    get_cost_preset,
+)
+from gridpilot_backtest.fees import RETRIEVAL_DATE, sourced_preset_components
 from gridpilot_backtest.metrics import block_bootstrap_mean_diff_ci, max_drawdown
 from gridpilot_core.agent import PaperAgent
 from gridpilot_core.battery import BatteryConfig
@@ -50,6 +57,7 @@ START = "2025-11-01"
 END = "2026-10-30"
 LOOKBACK = 90
 REFIT = 7
+# Overwritten in main() from --costs (default remains the assumed "base" preset).
 BASE = ExecutionCosts(0.05, 0.50, 5.0, label="base")
 
 BT_RESULTS = UMBRELLA / "packages" / "backtest" / "results"
@@ -271,7 +279,32 @@ def run_agent(name, strat, prices, costs: ExecutionCosts):
     return m, eq, daily, float(res.summary["final_cash_eur"])
 
 
-def main():
+def _parse_args(argv=None):
+    import argparse
+
+    p = argparse.ArgumentParser(description="Cost-aware LP backtest (paper only).")
+    p.add_argument(
+        "--costs",
+        default="base",
+        choices=("base", "assumed", "sourced", "zero"),
+        help="Cost preset: assumed/base (0.05/0.50/5) or sourced (ECC 0.015, slip 0, deg still assumed).",
+    )
+    p.add_argument(
+        "--skip-forecast",
+        action="store_true",
+        help="Reuse packages/forecast/results/cost_aware_tight_mondrian.json forecast_mae if present.",
+    )
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    global BASE
+    args = _parse_args(argv)
+    BASE = get_cost_preset(args.costs)
+    preset = BASE.label
+    suffix = "" if preset in {"base", "assumed"} else f"_{preset}"
+    print(f"cost preset={preset} fee={BASE.fee_eur_per_mwh} slip={BASE.slippage_eur_per_mwh} deg={BASE.degradation_eur_per_mwh}", flush=True)
+
     BT_RESULTS.mkdir(parents=True, exist_ok=True)
     BT_FIG.mkdir(parents=True, exist_ok=True)
     FC_RESULTS.mkdir(parents=True, exist_ok=True)
@@ -283,9 +316,19 @@ def main():
     prices = _berlin_price_series(raw)
     print(f"prices hours={len(prices)} mean={prices.mean():.2f}", flush=True)
 
-    print("forecast eval (rolling / Mondrian / tight Mondrian) ...", flush=True)
-    mae_tbl = forecast_eval(prices, fund)
-    print(json.dumps(mae_tbl, indent=2, default=float), flush=True)
+    mae_tbl = None
+    prior = FC_RESULTS / "cost_aware_tight_mondrian.json"
+    if args.skip_forecast and prior.exists():
+        try:
+            mae_tbl = json.loads(prior.read_text(encoding="utf-8")).get("forecast_mae")
+            print("reused forecast_mae from prior cost_aware_tight_mondrian.json", flush=True)
+        except Exception as exc:
+            print(f"could not reuse forecast_mae ({exc}); running eval", flush=True)
+            mae_tbl = None
+    if mae_tbl is None:
+        print("forecast eval (rolling / Mondrian / tight Mondrian) ...", flush=True)
+        mae_tbl = forecast_eval(prices, fund)
+        print(json.dumps(mae_tbl, indent=2, default=float), flush=True)
     gc.collect()
 
     net_rows = {}
@@ -311,9 +354,12 @@ def main():
         del acts, priced
         gc.collect()
 
+    ca_ml = "ml_cost_aware_forecast_driven_lp" + suffix
+    ca_tight = "ml_cost_aware_tight_mondrian" + suffix
+    ca_pf = "cost_aware_perfect_foresight_daily" + suffix
     new_strats = [
         (
-            "ml_cost_aware_forecast_driven_lp",
+            ca_ml,
             lambda: MLCostAwareForecastDrivenLP(
                 lookback_days=LOOKBACK,
                 refit_every_days=REFIT,
@@ -325,9 +371,9 @@ def main():
             ),
         ),
         (
-            "ml_cost_aware_tight_mondrian",
+            ca_tight,
             lambda: MLCostAwareForecastDrivenLP(
-                name="ml_cost_aware_tight_mondrian",
+                name=ca_tight,
                 lookback_days=LOOKBACK,
                 refit_every_days=REFIT,
                 use_fundamentals=True,
@@ -338,7 +384,7 @@ def main():
                 costs=BASE,
             ),
         ),
-        ("cost_aware_perfect_foresight_daily", lambda: CostAwarePerfectForesightDaily(costs=BASE)),
+        (ca_pf, lambda: CostAwarePerfectForesightDaily(costs=BASE)),
     ]
     for name, factory in new_strats:
         print(f"running {name} ...", flush=True)
@@ -352,7 +398,7 @@ def main():
         gc.collect()
 
     # Captures vs cost-aware PF if present, else vs reused PF
-    oracle = "cost_aware_perfect_foresight_daily" if "cost_aware_perfect_foresight_daily" in net_rows else "perfect_foresight_daily"
+    oracle = ca_pf if ca_pf in net_rows else "perfect_foresight_daily"
     pf = net_rows[oracle]["final_cash_eur"]
     th = net_rows.get("threshold_arbitrage", {}).get("final_cash_eur")
     for r in net_rows.values():
@@ -384,12 +430,17 @@ def main():
         "reused_dumps": reused,
         "bootstrap_vs_threshold": boot_thr,
         "bootstrap_vs_nonreopt_ml": boot_ml,
+        "cost_preset": preset,
         "cost_scenario_base": BASE.to_dict(),
-        "cost_sources": COST_SOURCES,
+        "cost_sources": COST_SOURCES if preset != "sourced" else sourced_preset_components()["catalog"],
+        "sourced_preset": sourced_preset_components() if preset == "sourced" else None,
+        "fee_retrieval_date": RETRIEVAL_DATE,
         "assumptions": [
             "Cost-aware LP puts fee+slippage+degradation in the objective (re-optimises)",
-            "Baselines reuse prior gross (deg=0) dumps and the same base accounting layer",
+            "Baselines reuse prior gross (deg=0) dumps and the same accounting layer for the selected preset",
             "Tight Mondrian: hour-bucket × hourly residual-load tercile × 7d/60d hour volatility, with parent fallback",
+            "Sourced fee is ECC DA clearing only; current EPEX trading fee is not in the public price list (lower bound)",
+            "Degradation remains ASSUMED at 5 €/MWh in both presets",
             "Paper trading only",
         ],
         "attribution": "Energy-Charts / SMARD — CC BY 4.0",
@@ -400,16 +451,22 @@ def main():
             "mondrian_coverage_80": 0.7818991097922848,
         },
     }
-    dest = FC_RESULTS / "cost_aware_tight_mondrian.json"
+    if preset == "sourced":
+        dest = FC_RESULTS / "sourced_fees_backtest.json"
+        json_bt = BT_RESULTS / "sourced_fees_backtest.json"
+        csv_path = BT_RESULTS / "sourced_fees_backtest.csv"
+    else:
+        dest = FC_RESULTS / "cost_aware_tight_mondrian.json"
+        json_bt = BT_RESULTS / "cost_aware_backtest.json"
+        csv_path = BT_RESULTS / "cost_aware_backtest.csv"
     dest.write_text(json.dumps(out, indent=2, default=float), encoding="utf-8")
-    (BT_RESULTS / "cost_aware_backtest.json").write_text(json.dumps(out, indent=2, default=float), encoding="utf-8")
+    json_bt.write_text(json.dumps(out, indent=2, default=float), encoding="utf-8")
     fields = [
         "strategy", "final_cash_eur", "capture_vs_pf_pct",
         "daily_pnl_p10", "daily_pnl_p50", "daily_pnl_p90",
         "cvar_5pct_loss_daily", "max_drawdown_eur", "cycles",
         "total_fees_eur", "total_slippage_eur", "total_degradation_eur", "throughput_mwh",
     ]
-    csv_path = BT_RESULTS / "cost_aware_backtest.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         w.writeheader()

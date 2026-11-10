@@ -8,7 +8,7 @@ See also `gridpilot-core/docs/assumptions.md` for runtime defaults.
 | U2 | Primary price feed (v0) | Energy-Charts DE-LU day-ahead, CC BY 4.0 |
 | U3 | ENTSO-E | Optional; `ENTSOE_API_TOKEN` env var only; not required for core replay |
 | U4 | P50 / P90 | Empirical percentiles of scenario or rolling daily PnL unless a module states a parametric model |
-| U5 | Fees / taxes / imbalance | Paper cost layer in `packages/backtest` (`ExecutionCosts`); see A-C1–A-C3 |
+| U5 | Fees / taxes / imbalance | Paper cost layer in `packages/backtest` (`ExecutionCosts`); assumed defaults A-C1–A-C3 and a **sourced** preset (ECC DA clearing 0.015 €/MWh, DA slippage 0; degradation still A-C3). See [`docs/fees.md`](fees.md) |
 
 
 ## Forecasting package (ASSUMED)
@@ -30,10 +30,13 @@ See also `gridpilot-core/docs/assumptions.md` for runtime defaults.
 | A-C2 | Slippage / fill conservatism €/MWh | 0.50 | 0–2 | Modelling choice; DA auction has a single clearing price |
 | A-C3 | Degradation €/MWh throughput | 5.0 | 1–10 | Order-of-magnitude; DOI [10.1088/1742-6596/977/1/012005](https://doi.org/10.1088/1742-6596/977/1/012005) (Crossref-checked) |
 
-Cost accounting is applied to paper fills; strategies are **not** re-optimised for fees in this release.
+The `assumed` / `base` preset still uses A-C1–A-C3. The **`sourced`** preset (retrieval 2026-11-10) is documented in [`docs/fees.md`](fees.md): fee **0.015** €/MWh (ECC Lux DA clearing only; current EPEX trading fee **not found** in the public Price List Guide), slippage **0** (SDAC single clearing price), degradation **still A-C3**. Cost accounting can be applied after fills, or the cost-aware LP can re-optimise.
+
 Conformal calibration refs (Crossref-checked): Lei et al. DOI [10.1080/01621459.2017.1307116](https://doi.org/10.1080/01621459.2017.1307116); Mondrian inductive CP DOI [10.1007/s10994-018-5754-9](https://doi.org/10.1007/s10994-018-5754-9).
 
 
 ## Cost-aware dispatch (2026-11-10)
 
-The paper LP can put fee + slippage + degradation in the objective (`packages/forecast` `solve_day_lp_with_costs`) so schedules **re-optimise** rather than only paying costs after fills. Defaults remain A-C1–A-C3. Tight Mondrian regimes (hour bucket × hourly residual-load tercile × hour-of-day volatility) fall back to parent labels when a cell has fewer than 5 days in the calibration window.
+The paper LP can put fee + slippage + degradation in the objective (`packages/forecast` `solve_day_lp_with_costs`) so schedules **re-optimise** rather than only paying costs after fills. Tight Mondrian regimes (hour bucket × hourly residual-load tercile × hour-of-day volatility) fall back to parent labels when a cell has fewer than 5 days in the calibration window.
+
+A **sourced** DA cost preset was added the same day (see [`docs/fees.md`](fees.md)). It is a **lower bound** on exchange costs because the current EPEX SPOT trading fee is not in the public 2026 Price List Guide. Degradation remains ASSUMED at 5 €/MWh. Grid-access charges on stored energy are treated as 0 under EnWG § 118(6) if the illustrative asset is eligible; imbalance (reBAP) is not applied in this day-ahead-only paper model.

@@ -16,7 +16,7 @@ from gridpilot_forecast.forecaster import WalkForwardQuantileForecast, evaluate_
 from gridpilot_forecast.fundamentals import build_fundamentals_panels
 from gridpilot_forecast.models import NaiveDayAhead, mae
 from gridpilot_strategies.forecast_lp import _solve_day_lp
-from gridpilot_backtest.costs import ExecutionCosts, ZERO_COSTS, apply_costs_to_actions
+from gridpilot_backtest.costs import ExecutionCosts, SOURCED_COSTS, ZERO_COSTS, apply_costs_to_actions
 from gridpilot_forecast.cost_aware_lp import solve_day_lp_with_costs
 
 from gridpilot_live.data import latest_published_price_day, load_or_extend_fundamentals
@@ -175,7 +175,7 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
     )
     naive = NaiveDayAhead()
 
-    costs = cfg.costs or ExecutionCosts()
+    costs = cfg.costs or SOURCED_COSTS
     # Degradation lives in ExecutionCosts when the fee toggle is on, so the
     # battery wear term is not applied twice inside apply_dispatch accounting.
     battery = BatteryConfig(
@@ -430,7 +430,7 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
                 "P10–P90 interval coverage on those days",
                 "Paper P&L of a day-locked schedule optimised on the P50 forecast, settled at realised DA",
                 "Capture ratio vs perfect-foresight LP on the same realised DA curve",
-                "Gross vs net-of-ASSUMED-cost paper P&L (fee toggle)",
+                f"Gross vs net-of-cost paper P&L (fee toggle, preset {costs.label})",
             ],
             "is_not": [
                 "Real order placement or exchange connectivity",
@@ -441,7 +441,11 @@ def run_live_pilot(cfg: LivePilotConfig | None = None) -> dict[str, Any]:
         "assumptions": [
             "ASSUMED 1 MW / 2 MWh BESS, η=0.95/0.95, SoC 5–95%",
             "ASSUMED ML lookback 90 d, refit every 7 d, CQR α=0.20",
-            "Base costs ASSUMED: fee 0.05 €/MWh, slippage 0.50 €/MWh, degradation 5 €/MWh" if cfg.apply_costs else "Fee toggle off: gross mid-price P&L only",
+            (
+                f"Costs ({costs.label}): fee {costs.fee_eur_per_mwh} €/MWh, "
+                f"slippage {costs.slippage_eur_per_mwh} €/MWh, degradation {costs.degradation_eur_per_mwh} €/MWh"
+                + (" — sourced preset is ECC DA clearing only; EPEX trading fee not in the public price list; degradation still ASSUMED" if costs.label == "sourced" else " — ASSUMED A-C1–A-C3")
+            ) if cfg.apply_costs else "Fee toggle off: gross mid-price P&L only",
             "Day-ahead fund forecasts ffilled ≤24 h when a tail day is missing",
             "Hourly means of native 15-min Energy-Charts MTU",
         ],
@@ -461,7 +465,7 @@ Run at (Asia/Karachi): **{summary['run_at_asia_karachi']}**
 
 Data: Energy-Charts DE-LU day-ahead + DE day-ahead load/solar/wind (CC BY 4.0).
 Latest published DA price day: **{summary['latest_published_price_day']}**.
-Fee toggle: **{'on' if cfg.apply_costs else 'off'}** (cost-aware LP: {use_cost_lp}).
+Fee toggle: **{'on' if cfg.apply_costs else 'off'}** (cost-aware LP: {use_cost_lp}; preset: **{costs.label}**).
 
 ## Accuracy (ex-ante vs realised DA)
 
@@ -474,13 +478,13 @@ P10–P90 coverage: **{(acc['coverage_p10_p90'] or 0)*100:.1f}%** (nominal 80%),
 
 ## Paper P&L (1 MW / 2 MWh, day-locked ex-ante ML schedule)
 
-| Strategy | Gross € | Net of ASSUMED costs € | Capture of PF (gross / net) |
+| Strategy | Gross € | Net of costs € | Capture of PF (gross / net) |
 |---|---:|---:|---|
 | ML ex-ante LP (P50; net uses cost-aware LP when toggle on) | {pnl['gross']['ml_exante_lp_cash_eur']:.2f} | {pnl['net']['ml_exante_lp_cash_eur']:.2f} | {pnl['gross']['ml_capture_vs_pf_pct']:.1f}% / {pnl['net']['ml_capture_vs_pf_pct']:.1f}% |
 | Threshold (causal) | {pnl['gross']['threshold_cash_eur']:.2f} | {pnl['net']['threshold_cash_eur']:.2f} | — |
 | Perfect foresight (oracle) | {pnl['gross']['perfect_foresight_cash_eur']:.2f} | {pnl['net']['perfect_foresight_cash_eur']:.2f} | 100% |
 
-Gross is mid-price P&L with no fee/slippage/degradation. Net uses ASSUMED fee 0.05, slippage 0.50, degradation 5 €/MWh. Previous pilots included core default degradation (5 €/MWh) but not fee/slippage.
+Gross is mid-price P&L with no fee/slippage/degradation. Net uses the **{costs.label}** preset: fee {costs.fee_eur_per_mwh} €/MWh, slippage {costs.slippage_eur_per_mwh} €/MWh, degradation {costs.degradation_eur_per_mwh} €/MWh{(' (ECC DA clearing only; current EPEX trading fee not in the public price list; degradation still ASSUMED).' if costs.label == 'sourced' else ' (A-C1–A-C3 ASSUMED).')}
 
 ## Tomorrow schedule ({tm['delivery_day']})
 
@@ -490,7 +494,7 @@ Charge hours: {tm['charge_hours']} · Discharge hours: {tm['discharge_hours']} �
 
 ## What this validates / does not
 
-**Validates:** ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP vs oracle on realised DA, gross vs net-of-ASSUMED-cost paper P&L.
+**Validates:** ex-ante DA forecast skill, interval coverage, paper capture of a forecast-based daily LP vs oracle on realised DA, gross vs net-of-cost paper P&L ({costs.label} preset).
 
 **Does not validate:** real orders, SDAC bidding before gate closure, intraday/imbalance/ancillary.
 """

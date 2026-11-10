@@ -141,25 +141,42 @@ Strategies now **re-optimise** under the same base ASSUMED costs (fee 0.05 / sli
 
 Honest takeaway: **re-optimising the LP for costs is a real gain**. Cost-aware ML earns **€7,493** more net than the previous accounting-only ML (57,153 → 64,646) — about **+20.6 €/day**, and the 90% CI excludes zero — mainly by skipping thin-spread cycles (throughput 2,103 → 1,612 MWh) and cutting CVaR₅% 79.8 → 11.1. Versus threshold the edge widens to **+89.8 [75.5, 103.7] €/day** (2.02× cash). The cost-aware oracle is also higher (81,314 vs 72,192) for the same reason, so capture is measured against that tighter bound (**79.5%**). Tight Mondrian **does improve coverage** (78.2% → **78.9%**, still short of 80%) and trims MAE slightly (16.26 → 16.07) but **does not improve P&L** versus rolling cost-aware ML (64,487 vs 64,646; CIs overlap). Calibration quality still ≠ automatic trading gain.
 
+### Sourced market fees (same window, retrieval 2026-11-10 Asia/Karachi)
+
+Public tariff documents were opened on **2026-11-10**. The **`sourced`** DA preset is ECC Lux day-ahead **clearing only** at **0.015 €/MWh** ([ECC Price List 085b, 2 Nov 2026](https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf)), DA slippage **0** (SDAC single clearing price), and degradation **still ASSUMED at 5 €/MWh**. The current EPEX SPOT trading fee is **not** in the public [Fees page](https://www.epexspot.com/en/fees) or [Price List Guide](https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf), so it is omitted — the 0.015 €/MWh fee is a **lower bound** on total exchange costs. Full sourced-vs-assumed table, fixed ECC membership fees, Nord Pool comparator, EnWG § 118(6) grid exemption, and reBAP notes: [`docs/fees.md`](docs/fees.md).
+
+Cost-aware strategies were **re-run** under this preset (not just repriced). Accounting-only baselines reuse the earlier gross dumps with sourced accounting.
+
+| Strategy (net of sourced costs) | Final cash € | Capture of cost-aware PF | Throughput MWh | CVaR₅% loss € | Δ€/day vs threshold (90% CI) | Δ€/day vs non-reopt ML (90% CI) |
+|---|---:|---:|---:|---:|---|---|
+| Threshold (unchanged path) | 32,367 | 39.3% | 791 | 174.25 | — | −71.2 [−84.0, −55.3] |
+| ML, accounting-only (not re-optimised) | 58,277 | 70.8% | 2,103 | 75.88 | +71.2 [55.3, 84.0] | — |
+| **ML cost-aware LP** (rolling CQR) | **65,473** | **79.6%** | 1,644 | **13.07** | **+90.9 [76.6, 104.7]** | **+19.8 [13.8, 26.7]** |
+| ML cost-aware + tight Mondrian | 65,312 | 79.4% | 1,706 | 28.75 | +90.5 [76.5, 104.6] | +19.3 [13.3, 26.7] |
+| PF, accounting-only | 73,449 | 89.3% | 2,349 | 5.48 | +112.9 [93.9, 127.1] | +41.7 [34.1, 47.6] |
+| **Cost-aware PF** (oracle) | **82,271** | **100%** | 1,972 | — | +137.1 [119.0, 152.7] | +65.9 [57.0, 73.9] |
+
+Versus the earlier **assumed** base costs (0.05 / 0.50 / 5), sourced net cash is slightly higher (cost-aware ML **65,473** vs **64,646**; threshold **32,367** vs **31,944**; cost-aware PF **82,271** vs **81,314**) because the variable fee is lower and DA slippage is 0. Almost all of the remaining gap versus gross is still the **ASSUMED 5 €/MWh degradation** (cost-aware ML paid **€8,219** degradation vs **€25** fees). The ML edge vs threshold **survives** and the 90% CI still excludes zero. This is **paper trading only** and is not a real-money result. The sourced fee understates all-in exchange costs if a current EPEX trading fee and annual membership apply.
+
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
 
-### Near-live paper pilot (re-run 2026-11-10 Asia/Karachi, fee toggle on)
+### Near-live paper pilot (re-run 2026-11-10 Asia/Karachi, sourced fee preset)
 
-Latest published Energy-Charts DE-LU day-ahead day is still **2026-11-10** (window **2026-10-28 → 2026-11-10**, 14 days / 336 h). Ex-ante P50 schedule, fills at realised DA. Paper trading only — **no real orders**. The fee toggle now reports **gross** (mid-price, no fee/slip/deg) and **net** of base ASSUMED costs; the net ML/PF schedules use the cost-aware LP.
+Latest published Energy-Charts DE-LU day-ahead day is still **2026-11-10** (window **2026-10-28 → 2026-11-10**, 14 days / 336 h). Ex-ante P50 schedule, fills at realised DA. Paper trading only — **no real orders**. The fee toggle reports **gross** (mid-price, no fee/slip/deg) and **net** of the **sourced** preset (ECC DA clearing 0.015 €/MWh, slippage 0, degradation still ASSUMED 5 €/MWh); the net ML/PF schedules use the cost-aware LP.
 
 | Check | Result |
 |---|---|
 | Forecast MAE | ML+fund+CQR **39.20** vs naive **75.68** €/MWh |
 | Forecast RMSE | ML **46.89** vs naive **84.12** €/MWh |
 | P10–P90 coverage | **52.4%** (nominal 80%; short window, unchanged) |
-| ML gross / net cash | **3,816** / **3,301** € (capture **88.9%** / **86.7%** of PF) |
-| Threshold gross / net | 1,261 / 1,028 € |
-| PF gross / net | 4,293 / 3,806 € |
+| ML gross / net cash | **3,816** / **3,351** € (capture **88.9%** / **87.0%** of PF) |
+| Threshold gross / net | 1,261 / 1,051 € |
+| PF gross / net | 4,293 / 3,852 € |
 | Next delivery day | **2026-11-11** (DA not yet published): forecast-only cost-aware schedule, 4h charge / 4h discharge / 16h hold, P50 mean **351.48** €/MWh |
 
-The earlier 3,352 € ML figure included core default degradation (5 €/MWh) but not fee/slippage, so it is not directly comparable to either the new gross or net columns. Coverage on this short, high-price window remains well below 80%. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
+Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1,028), sourced net is slightly higher because the variable fee is lower and slippage is 0. Gross is unchanged. Coverage on this short, high-price window remains well below 80%. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
 
 ### Module highlights
 
@@ -170,7 +187,7 @@ The earlier 3,352 € ML figure included core default degradation (5 €/MWh) bu
 | [`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk) | Block-bootstrap VaR/CVaR hooks |
 | [`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies) | Climatology ForecastDrivenLP / RiskAwareForecastLP |
 | `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; long-window eval |
-| `packages/backtest` | Cost layer, cost-aware comparison CSV, equity + coverage figures |
+| `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
 | `packages/live` | Near-live paper pilot with gross/net fee toggle |
 | `packages/dashboard` | Streamlit: net table, calibration, bootstrap CIs, equity image |
 
@@ -192,8 +209,8 @@ pytest -q packages/forecast packages/backtest packages/dashboard
 # python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
 python packages/forecast/scripts/run_long_window_eval.py
 python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
-python packages/forecast/scripts/run_cost_aware_tight_mondrian.py  # cost-aware LP + tight Mondrian
-python packages/live/scripts/run_live_pilot.py  # near-live paper pilot (gross + net)
+python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs sourced --skip-forecast
+python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
 ```
@@ -210,6 +227,7 @@ See [`docs/related-work.md`](docs/related-work.md). Highlights:
 ## Docs
 
 - [`docs/methods.md`](docs/methods.md) — literature anchors (DOIs)
+- [`docs/fees.md`](docs/fees.md) — sourced vs assumed market fees (retrieval 2026-11-10)
 - [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
 - [`docs/limitations.md`](docs/limitations.md) — honest scope limits
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help

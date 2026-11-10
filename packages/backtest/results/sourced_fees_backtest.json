@@ -1,0 +1,744 @@
+{
+  "window": {
+    "start": "2025-11-01",
+    "end": "2026-10-30",
+    "n_hours": 8735,
+    "da_mean_eur_mwh": 110.88381797366915,
+    "da_min": -499.0,
+    "da_max": 697.31,
+    "neg_hour_pct": 5.174585002862049
+  },
+  "forecast_mae": {
+    "naive": {
+      "n_days": 340,
+      "mae_eur_mwh": 33.97827389705882
+    },
+    "ensemble_fund_raw": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.26140019197196
+    },
+    "cqr_rolling": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.26140019197196
+    },
+    "cqr_mondrian": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.218221053920477
+    },
+    "cqr_tight": {
+      "n_days": 337,
+      "mae_eur_mwh": 16.070858137965118
+    },
+    "calibration": {
+      "raw": {
+        "coverage_80": 0.5,
+        "reliability": {
+          "0.1": 0.16654302670623145,
+          "0.5": 0.4068991097922849,
+          "0.9": 0.6665430267062314
+        },
+        "n_hours": 8088
+      },
+      "rolling_cqr": {
+        "coverage_80": 0.7219337289812068,
+        "reliability": {
+          "0.1": 0.08827893175074183,
+          "0.5": 0.4068991097922849,
+          "0.9": 0.8102126607319485
+        },
+        "n_hours": 8088
+      },
+      "mondrian_cqr": {
+        "coverage_80": 0.7659495548961425,
+        "reliability": {
+          "0.1": 0.08827893175074183,
+          "0.5": 0.46080613254203756,
+          "0.9": 0.8542284866468842
+        },
+        "n_hours": 8088
+      },
+      "tight_mondrian_cqr": {
+        "coverage_80": 0.7893175074183977,
+        "reliability": {
+          "0.1": 0.07826409495548961,
+          "0.5": 0.46760633036597427,
+          "0.9": 0.8675816023738873
+        },
+        "n_hours": 8088
+      },
+      "nominal_80": 0.8,
+      "coverage_figure": "packages/backtest/figures/coverage_calibration.png"
+    }
+  },
+  "strategies": {
+    "threshold_arbitrage": {
+      "final_cash_eur": 32367.461596052603,
+      "n_days": 364,
+      "daily_pnl_p10": -59.33360263157874,
+      "daily_pnl_p50": 78.49888587257595,
+      "daily_pnl_p90": 248.90511631578883,
+      "cvar_5pct_loss_daily": 174.25358414491893,
+      "max_drawdown_eur": 307.4436842105242,
+      "cycles": NaN,
+      "killed": false,
+      "total_fees_eur": 11.863239265927977,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 3954.413088642659,
+      "throughput_mwh": 790.8826177285318,
+      "capture_vs_pf_pct": 39.342428624311886,
+      "vs_threshold_pct": 100.0
+    },
+    "ml_forecast_driven_lp": {
+      "final_cash_eur": 58277.4485269605,
+      "n_days": 364,
+      "daily_pnl_p10": 0.38229059210524924,
+      "daily_pnl_p50": 138.61752499999966,
+      "daily_pnl_p90": 366.35200761927365,
+      "cvar_5pct_loss_daily": 75.87636648561457,
+      "max_drawdown_eur": 465.20947368421184,
+      "cycles": NaN,
+      "killed": false,
+      "total_fees_eur": 31.53969208338159,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 10513.23069446053,
+      "throughput_mwh": 2102.646138892106,
+      "capture_vs_pf_pct": 70.8358408729392,
+      "vs_threshold_pct": 180.04948690220357
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "final_cash_eur": 56658.266335465094,
+      "n_days": 364,
+      "daily_pnl_p10": -2.897205062850063,
+      "daily_pnl_p50": 128.7761802631578,
+      "daily_pnl_p90": 367.1793019737466,
+      "cvar_5pct_loss_daily": 78.28997735506714,
+      "max_drawdown_eur": 458.48526315789786,
+      "cycles": NaN,
+      "killed": false,
+      "total_fees_eur": 32.45286703102905,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 10817.622343676354,
+      "throughput_mwh": 2163.52446873527,
+      "capture_vs_pf_pct": 68.86773597198417,
+      "vs_threshold_pct": 175.04698713344544
+    },
+    "perfect_foresight_daily": {
+      "final_cash_eur": 73449.24873371149,
+      "n_days": 364,
+      "daily_pnl_p10": 30.675697894737006,
+      "daily_pnl_p50": 181.07952105262802,
+      "daily_pnl_p90": 400.4255731578938,
+      "cvar_5pct_loss_daily": 5.482506750987389,
+      "max_drawdown_eur": 494.3657894736825,
+      "cycles": NaN,
+      "killed": false,
+      "total_fees_eur": 35.24020337164183,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 11746.734457213945,
+      "throughput_mwh": 2349.3468914427885,
+      "capture_vs_pf_pct": 89.27706045900695,
+      "vs_threshold_pct": 226.923104599185
+    },
+    "ml_cost_aware_forecast_driven_lp_sourced": {
+      "final_cash_eur": 65473.15872031091,
+      "n_days": 364,
+      "daily_pnl_p10": 13.621725263158716,
+      "daily_pnl_p50": 174.16279309210495,
+      "daily_pnl_p90": 343.7786952631628,
+      "cvar_5pct_loss_daily": 13.070228139951832,
+      "max_drawdown_eur": 458.48526315789786,
+      "cycles": 410.96021313238197,
+      "killed": false,
+      "total_fees_eur": 24.657612787942842,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 8219.204262647614,
+      "throughput_mwh": 1643.8408525295229,
+      "gross_cash_deg0_eur": 73717.0205957464,
+      "capture_vs_pf_pct": 79.58217749383898,
+      "vs_threshold_pct": 202.28079525487328
+    },
+    "ml_cost_aware_tight_mondrian_sourced": {
+      "final_cash_eur": 65312.12083284553,
+      "n_days": 364,
+      "daily_pnl_p10": 8.057803881578687,
+      "daily_pnl_p50": 185.95538059210594,
+      "daily_pnl_p90": 352.11452184210503,
+      "cvar_5pct_loss_daily": 28.752706896048668,
+      "max_drawdown_eur": 458.48526315789786,
+      "cycles": 426.4621625783656,
+      "killed": false,
+      "total_fees_eur": 25.587729754701844,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 8529.24325156728,
+      "throughput_mwh": 1705.8486503134563,
+      "gross_cash_deg0_eur": 73866.95181416752,
+      "capture_vs_pf_pct": 79.38643704089628,
+      "vs_threshold_pct": 201.78326508251953
+    },
+    "cost_aware_perfect_foresight_daily_sourced": {
+      "final_cash_eur": 82271.13253514539,
+      "n_days": 364,
+      "daily_pnl_p10": 37.80012105263231,
+      "daily_pnl_p50": 224.40301842105146,
+      "daily_pnl_p90": 400.4255731578938,
+      "cvar_5pct_loss_daily": -19.984192617363934,
+      "max_drawdown_eur": 494.3657894736825,
+      "cycles": 492.94675727146915,
+      "killed": false,
+      "total_fees_eur": 29.576805436288083,
+      "total_slippage_eur": 0.0,
+      "total_degradation_eur": 9858.935145429361,
+      "throughput_mwh": 1971.7870290858725,
+      "gross_cash_deg0_eur": 92159.6444860108,
+      "capture_vs_pf_pct": 100.0,
+      "vs_threshold_pct": 254.17851285928094
+    }
+  },
+  "reused_dumps": [
+    "threshold_arbitrage",
+    "ml_forecast_driven_lp",
+    "ml_mondrian_forecast_driven_lp",
+    "perfect_foresight_daily"
+  ],
+  "bootstrap_vs_threshold": {
+    "ml_forecast_driven_lp": {
+      "n_days": 364,
+      "mean_diff": 71.1812827772195,
+      "ci_low": 55.30121123028087,
+      "ci_high": 83.97542128138323,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "n_days": 364,
+      "mean_diff": 66.732980053331,
+      "ci_low": 51.21186906481141,
+      "ci_high": 81.18301372386813,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "perfect_foresight_daily": {
+      "n_days": 364,
+      "mean_diff": 112.86205257598596,
+      "ci_low": 93.87482367189433,
+      "ci_high": 127.08050647211986,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_cost_aware_forecast_driven_lp_sourced": {
+      "n_days": 364,
+      "mean_diff": 90.94971737433602,
+      "ci_low": 76.59765455507724,
+      "ci_high": 104.68240717047794,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_cost_aware_tight_mondrian_sourced": {
+      "n_days": 364,
+      "mean_diff": 90.50730559558497,
+      "ci_low": 76.51302980415849,
+      "ci_high": 104.64579070845538,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "cost_aware_perfect_foresight_daily_sourced": {
+      "n_days": 364,
+      "mean_diff": 137.09799708541973,
+      "ci_low": 118.99885394366319,
+      "ci_high": 152.66234365426456,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    }
+  },
+  "bootstrap_vs_nonreopt_ml": {
+    "threshold_arbitrage": {
+      "n_days": 364,
+      "mean_diff": -71.1812827772195,
+      "ci_low": -83.97542128138325,
+      "ci_high": -55.301211230280906,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_mondrian_forecast_driven_lp": {
+      "n_days": 364,
+      "mean_diff": -4.448302723888476,
+      "ci_low": -7.588616170302037,
+      "ci_high": -0.6659893324792956,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "perfect_foresight_daily": {
+      "n_days": 364,
+      "mean_diff": 41.68076979876645,
+      "ci_low": 34.05143840130929,
+      "ci_high": 47.594820905839946,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_cost_aware_forecast_driven_lp_sourced": {
+      "n_days": 364,
+      "mean_diff": 19.76843459711651,
+      "ci_low": 13.797186263042356,
+      "ci_high": 26.720332450674032,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "ml_cost_aware_tight_mondrian_sourced": {
+      "n_days": 364,
+      "mean_diff": 19.326022818365477,
+      "ci_low": 13.302982786019188,
+      "ci_high": 26.714344478960736,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    },
+    "cost_aware_perfect_foresight_daily_sourced": {
+      "n_days": 364,
+      "mean_diff": 65.91671430820024,
+      "ci_low": 56.98222210927853,
+      "ci_high": 73.88175760636169,
+      "block": 7,
+      "n_boot": 400,
+      "alpha": 0.1
+    }
+  },
+  "cost_preset": "sourced",
+  "cost_scenario_base": {
+    "fee_eur_per_mwh": 0.015,
+    "slippage_eur_per_mwh": 0.0,
+    "degradation_eur_per_mwh": 5.0,
+    "label": "sourced",
+    "assumed": false,
+    "cost_basis": "sourced",
+    "still_assumed": [
+      "degradation_eur_per_mwh"
+    ],
+    "is_lower_bound_on_exchange_fees": true,
+    "fee_composition": {
+      "ecc_da_clearing_eur_per_mwh": 0.015,
+      "epex_trading_eur_per_mwh": null
+    },
+    "sources": [
+      {
+        "id": "S-EPEX-DA-TRADING",
+        "item": "EPEX SPOT Day-Ahead trading fee (DE-LU)",
+        "status": "not_found",
+        "value": null,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "EPEX SPOT Fees page and New Price List Guide (public)",
+        "source_url": "https://www.epexspot.com/en/fees",
+        "notes": "The public Fees page and the downloadable Price List Guide describe Market Access, Flat Trading Fees, and Technical Add-ons qualitatively and direct readers to sales@epexspot.com. No current \u20ac/MWh or annual membership figure is printed in those public documents (retrieved 2026-11-10). The sourced per-MWh preset therefore does not include an EPEX trading-fee component. This is a lower bound on total exchange costs if a member still pays a trading fee. Guide PDF: https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf"
+      },
+      {
+        "id": "H-EPEX-2015",
+        "item": "Historical EPEX SPOT trading fees (NOT used in the sourced preset)",
+        "status": "historical",
+        "value": "DA DE-AT-CH 0.04; FR DA 0.07; ID 0.10 (2015 list)",
+        "unit": "EUR/MWh",
+        "tariff_year": "2015",
+        "retrieval_date": "2026-11-10",
+        "source_title": "EPEX SPOT Price List valid 1 January 2015 (unofficial host; stale)",
+        "source_url": "https://abcdocz.com/doc/668004/price-list---epex-spot",
+        "notes": "Historical public list only, retrieved for context. Entrance 25,000 \u20ac; annual one/two/three market access 10,000 / 20,000 / 30,000 \u20ac; ETS Standard 8,000 \u20ac / Light 3,500 \u20ac. These are not current official rates and are not used in the sourced preset. They informed the earlier ASSUMED 0.05 \u20ac/MWh order-of-magnitude (A-C1)."
+      },
+      {
+        "id": "S-ECC-DA-CLEARING",
+        "item": "ECC Lux clearing fee \u2014 Power Day-ahead Spot trades",
+        "status": "sourced",
+        "value": 0.015,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List, Document Release 085b, 02.11.2026, \u00a74.1 Power spot",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "Official current price list (English information version; German legally binding), publishing date 2 November 2026, linked from https://www.ecc.de/en/rules-regulations/rules. Standard rate 0.015 \u20ac/MWh for Power Day-ahead Spot trades (ECC Lux). Exceptions (Serbia/Slovenia 0.020, Ireland, GB) do not apply to DE-LU. Baltic DA auction waiver is also not DE-LU. This is the only variable \u20ac/MWh figure in the sourced DA fee preset."
+      },
+      {
+        "id": "S-ECC-ID-CLEARING",
+        "item": "ECC Lux clearing fee \u2014 Power Intraday Spot / SIDC IDAs",
+        "status": "sourced",
+        "value": 0.035,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List 085b, 02.11.2026, \u00a74.1 Power spot",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "0.035 \u20ac/MWh for Power Intraday Spot trades; footnote *4 states the same rate applies to Pan-European Intraday Auctions (IDAs). Documented for completeness. The current paper model is day-ahead only, so this rate is not added to the sourced DA ExecutionCosts preset."
+      },
+      {
+        "id": "S-ECC-MEMBERSHIP",
+        "item": "ECC membership fees (fixed, not converted to \u20ac/MWh)",
+        "status": "sourced",
+        "value": "NCM 1,000 \u20ac p.a.; Institution CM 12,500 \u20ac p.a.; DCP Power Markets Plus 12,500 \u20ac p.a.",
+        "unit": "EUR/year",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List 085b, 02.11.2026, \u00a72 Membership Fees",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "Non-Clearing Member 1,000 \u20ac p.a. (clearing-fee credit against the membership fee; first 12 months waived). Institution Clearing Member 12,500 \u20ac p.a. (first 12 months waived). DCP Power Markets Plus 12,500 \u20ac p.a. (or 11,000 \u00a3 if GBP power only). Technical access EUREX GUI via public Internet 7,500 \u20ac p.a. (not applicable to DCP). Fixed fees are disclosed here and are not amortised into the per-MWh sourced preset: any \u20ac/MWh conversion would depend on annual throughput and membership type (modelling choice, not a published tariff)."
+      },
+      {
+        "id": "S-NORDPOOL-NORDIC-BALTIC",
+        "item": "Nord Pool variable DA fees (Nordic/Baltic 2026 schedule; NEMO comparator, not EPEX DE-LU)",
+        "status": "sourced",
+        "value": "DA trading 0.040 + clearing 0.015 = 0.055",
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Nord Pool AS Fee Schedule, Nordic / Baltic Market, effective 1 January 2026",
+        "source_url": "https://www.nordpoolgroup.com/4a7ad8/globalassets/trading-and-services/nord-pool-fee-schedule-2026-nordic-and-baltic-market.pdf",
+        "notes": "Official PDF retrieved 2026-11-10. Section 1.4: Day-ahead market trading 0.040 \u20ac/MWh and clearing 0.015 \u20ac/MWh (combined 0.055); small participant DA 0.125+0.015=0.140; intraday continuous 0.109+0.015=0.124; SIDC IDA 0.060+0.015=0.075. Annual participant access DA+ID continuous: 21,500 \u20ac (additional area 11,000 \u20ac); small participant can waive the annual fee and pay the higher variable rate (floors apply). Note (b) lists Germany/Luxembourg among the areas used for the 65,000 \u20ac annual access-fee cap when applying for multiple Nord Pool areas. The document title is 'Nordic / Baltic Market'; a separate public CWE/DE-LU fee schedule was not found at retrieval. These rates are a published NEMO comparator, not a substitute for the unpublished current EPEX DE-LU trading fee, and they are not added to the sourced ExecutionCosts preset."
+      },
+      {
+        "id": "S-ENWG-118-6",
+        "item": "German grid-access charges (Netzentgelte) for eligible electricity storage",
+        "status": "sourced",
+        "value": 0.0,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026 (statutory)",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Energiewirtschaftsgesetz (EnWG) \u00a7 118(6), gesetze-im-internet.de",
+        "source_url": "https://www.gesetze-im-internet.de/enwg_2005/__118.html",
+        "notes": "Official text: installations for storing electrical energy newly built after 31 December 2008 and commissioned from 4 August 2011 within 18 years (i.e. by 4 August 2029) are exempt for 20 years from commissioning from grid-access charges (Entgelte f\u00fcr den Netzzugang) on energy withdrawn for storage, provided the energy is taken from a transmission or distribution grid and the recovered energy is fed back into the same grid. The exemption does not automatically cover every levy or concession fee. For the illustrative 1 MW / 2 MWh paper asset, assumed commissioned in the exemption window and same-grid, the sourced preset applies 0 \u20ac/MWh grid-access charge on stored energy. This is a legal condition, not a published TSO tariff table."
+      },
+      {
+        "id": "S-REBAP",
+        "item": "German imbalance settlement price (reBAP)",
+        "status": "not_applied",
+        "value": null,
+        "unit": "EUR/MWh (quarter-hourly, published, not a fixed tariff)",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Netztransparenz \u2014 Ausgleichsenergiepreis / reBAP (four German TSOs)",
+        "source_url": "https://www.netztransparenz.de/de-de/Regelenergie/Ausgleichsenergiepreis",
+        "notes": "reBAP is a published quarter-hourly settlement price for balance-group imbalances, not a fixed \u20ac/MWh trading fee. It can be positive or negative. The current paper model is day-ahead only and settles planned DA volumes at the DA clearing price, so no imbalance volume is simulated and no reBAP charge is applied. A live physical asset would face reBAP on residual imbalances."
+      },
+      {
+        "id": "S-DA-SLIPPAGE",
+        "item": "Day-ahead slippage / bid-ask (SDAC single clearing price)",
+        "status": "sourced",
+        "value": 0.0,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Market design: SDAC day-ahead auction (single clearing price per MTU)",
+        "source_url": "https://www.epexspot.com/en/downloads",
+        "notes": "The coupled day-ahead auction produces one clearing price per market time unit. There is no classic bid-ask spread on a filled DA auction trade. The sourced DA preset therefore sets slippage to 0 (pure auction-fill paper assumption). The previous 0.50 \u20ac/MWh figure remains an ASSUMED conservatism (A-C2) in the assumed preset, not a published fee."
+      },
+      {
+        "id": "A-DEGRADATION",
+        "item": "Battery degradation \u20ac/MWh throughput",
+        "status": "assumed",
+        "value": 5.0,
+        "unit": "EUR/MWh throughput",
+        "tariff_year": null,
+        "retrieval_date": "2026-11-10",
+        "source_title": "NREL/NLR 2025 Annual Technology Baseline \u2014 Utility-Scale Battery Storage (context only; no published \u20ac/MWh wear tariff)",
+        "source_url": "https://atb.nlr.gov/electricity/2025/utility-scale_battery_storage",
+        "notes": "No public exchange or TSO document publishes a battery degradation tariff in \u20ac/MWh. NREL/NLR ATB 2025 (LFP utility-scale, retrieved 2026-11-10) states a 15-year technical life, approximately one cycle per day, variable O&M of zero, and fixed O&M at 4% of capital cost in $/kW including augmentation so the system can hold rated capacity over that life (Cole et al., 2025). A primary-source 2024 overnight $/kWh table was not successfully retrieved this day (NREL PDF TLS failure), so no \u20ac/MWh figure is derived here. The sourced preset therefore keeps the existing ASSUMED 5 \u20ac/MWh throughput wear proxy (A-C3; Kies et al. 2018 DOI 10.1088/1742-6596/977/1/012005 is order-of-magnitude framing only)."
+      }
+    ]
+  },
+  "cost_sources": [
+    {
+      "id": "S-EPEX-DA-TRADING",
+      "item": "EPEX SPOT Day-Ahead trading fee (DE-LU)",
+      "status": "not_found",
+      "value": null,
+      "unit": "EUR/MWh",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "EPEX SPOT Fees page and New Price List Guide (public)",
+      "source_url": "https://www.epexspot.com/en/fees",
+      "notes": "The public Fees page and the downloadable Price List Guide describe Market Access, Flat Trading Fees, and Technical Add-ons qualitatively and direct readers to sales@epexspot.com. No current \u20ac/MWh or annual membership figure is printed in those public documents (retrieved 2026-11-10). The sourced per-MWh preset therefore does not include an EPEX trading-fee component. This is a lower bound on total exchange costs if a member still pays a trading fee. Guide PDF: https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf"
+    },
+    {
+      "id": "H-EPEX-2015",
+      "item": "Historical EPEX SPOT trading fees (NOT used in the sourced preset)",
+      "status": "historical",
+      "value": "DA DE-AT-CH 0.04; FR DA 0.07; ID 0.10 (2015 list)",
+      "unit": "EUR/MWh",
+      "tariff_year": "2015",
+      "retrieval_date": "2026-11-10",
+      "source_title": "EPEX SPOT Price List valid 1 January 2015 (unofficial host; stale)",
+      "source_url": "https://abcdocz.com/doc/668004/price-list---epex-spot",
+      "notes": "Historical public list only, retrieved for context. Entrance 25,000 \u20ac; annual one/two/three market access 10,000 / 20,000 / 30,000 \u20ac; ETS Standard 8,000 \u20ac / Light 3,500 \u20ac. These are not current official rates and are not used in the sourced preset. They informed the earlier ASSUMED 0.05 \u20ac/MWh order-of-magnitude (A-C1)."
+    },
+    {
+      "id": "S-ECC-DA-CLEARING",
+      "item": "ECC Lux clearing fee \u2014 Power Day-ahead Spot trades",
+      "status": "sourced",
+      "value": 0.015,
+      "unit": "EUR/MWh",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "ECC Price List, Document Release 085b, 02.11.2026, \u00a74.1 Power spot",
+      "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+      "notes": "Official current price list (English information version; German legally binding), publishing date 2 November 2026, linked from https://www.ecc.de/en/rules-regulations/rules. Standard rate 0.015 \u20ac/MWh for Power Day-ahead Spot trades (ECC Lux). Exceptions (Serbia/Slovenia 0.020, Ireland, GB) do not apply to DE-LU. Baltic DA auction waiver is also not DE-LU. This is the only variable \u20ac/MWh figure in the sourced DA fee preset."
+    },
+    {
+      "id": "S-ECC-ID-CLEARING",
+      "item": "ECC Lux clearing fee \u2014 Power Intraday Spot / SIDC IDAs",
+      "status": "sourced",
+      "value": 0.035,
+      "unit": "EUR/MWh",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "ECC Price List 085b, 02.11.2026, \u00a74.1 Power spot",
+      "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+      "notes": "0.035 \u20ac/MWh for Power Intraday Spot trades; footnote *4 states the same rate applies to Pan-European Intraday Auctions (IDAs). Documented for completeness. The current paper model is day-ahead only, so this rate is not added to the sourced DA ExecutionCosts preset."
+    },
+    {
+      "id": "S-ECC-MEMBERSHIP",
+      "item": "ECC membership fees (fixed, not converted to \u20ac/MWh)",
+      "status": "sourced",
+      "value": "NCM 1,000 \u20ac p.a.; Institution CM 12,500 \u20ac p.a.; DCP Power Markets Plus 12,500 \u20ac p.a.",
+      "unit": "EUR/year",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "ECC Price List 085b, 02.11.2026, \u00a72 Membership Fees",
+      "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+      "notes": "Non-Clearing Member 1,000 \u20ac p.a. (clearing-fee credit against the membership fee; first 12 months waived). Institution Clearing Member 12,500 \u20ac p.a. (first 12 months waived). DCP Power Markets Plus 12,500 \u20ac p.a. (or 11,000 \u00a3 if GBP power only). Technical access EUREX GUI via public Internet 7,500 \u20ac p.a. (not applicable to DCP). Fixed fees are disclosed here and are not amortised into the per-MWh sourced preset: any \u20ac/MWh conversion would depend on annual throughput and membership type (modelling choice, not a published tariff)."
+    },
+    {
+      "id": "S-NORDPOOL-NORDIC-BALTIC",
+      "item": "Nord Pool variable DA fees (Nordic/Baltic 2026 schedule; NEMO comparator, not EPEX DE-LU)",
+      "status": "sourced",
+      "value": "DA trading 0.040 + clearing 0.015 = 0.055",
+      "unit": "EUR/MWh",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "Nord Pool AS Fee Schedule, Nordic / Baltic Market, effective 1 January 2026",
+      "source_url": "https://www.nordpoolgroup.com/4a7ad8/globalassets/trading-and-services/nord-pool-fee-schedule-2026-nordic-and-baltic-market.pdf",
+      "notes": "Official PDF retrieved 2026-11-10. Section 1.4: Day-ahead market trading 0.040 \u20ac/MWh and clearing 0.015 \u20ac/MWh (combined 0.055); small participant DA 0.125+0.015=0.140; intraday continuous 0.109+0.015=0.124; SIDC IDA 0.060+0.015=0.075. Annual participant access DA+ID continuous: 21,500 \u20ac (additional area 11,000 \u20ac); small participant can waive the annual fee and pay the higher variable rate (floors apply). Note (b) lists Germany/Luxembourg among the areas used for the 65,000 \u20ac annual access-fee cap when applying for multiple Nord Pool areas. The document title is 'Nordic / Baltic Market'; a separate public CWE/DE-LU fee schedule was not found at retrieval. These rates are a published NEMO comparator, not a substitute for the unpublished current EPEX DE-LU trading fee, and they are not added to the sourced ExecutionCosts preset."
+    },
+    {
+      "id": "S-ENWG-118-6",
+      "item": "German grid-access charges (Netzentgelte) for eligible electricity storage",
+      "status": "sourced",
+      "value": 0.0,
+      "unit": "EUR/MWh",
+      "tariff_year": "2026 (statutory)",
+      "retrieval_date": "2026-11-10",
+      "source_title": "Energiewirtschaftsgesetz (EnWG) \u00a7 118(6), gesetze-im-internet.de",
+      "source_url": "https://www.gesetze-im-internet.de/enwg_2005/__118.html",
+      "notes": "Official text: installations for storing electrical energy newly built after 31 December 2008 and commissioned from 4 August 2011 within 18 years (i.e. by 4 August 2029) are exempt for 20 years from commissioning from grid-access charges (Entgelte f\u00fcr den Netzzugang) on energy withdrawn for storage, provided the energy is taken from a transmission or distribution grid and the recovered energy is fed back into the same grid. The exemption does not automatically cover every levy or concession fee. For the illustrative 1 MW / 2 MWh paper asset, assumed commissioned in the exemption window and same-grid, the sourced preset applies 0 \u20ac/MWh grid-access charge on stored energy. This is a legal condition, not a published TSO tariff table."
+    },
+    {
+      "id": "S-REBAP",
+      "item": "German imbalance settlement price (reBAP)",
+      "status": "not_applied",
+      "value": null,
+      "unit": "EUR/MWh (quarter-hourly, published, not a fixed tariff)",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "Netztransparenz \u2014 Ausgleichsenergiepreis / reBAP (four German TSOs)",
+      "source_url": "https://www.netztransparenz.de/de-de/Regelenergie/Ausgleichsenergiepreis",
+      "notes": "reBAP is a published quarter-hourly settlement price for balance-group imbalances, not a fixed \u20ac/MWh trading fee. It can be positive or negative. The current paper model is day-ahead only and settles planned DA volumes at the DA clearing price, so no imbalance volume is simulated and no reBAP charge is applied. A live physical asset would face reBAP on residual imbalances."
+    },
+    {
+      "id": "S-DA-SLIPPAGE",
+      "item": "Day-ahead slippage / bid-ask (SDAC single clearing price)",
+      "status": "sourced",
+      "value": 0.0,
+      "unit": "EUR/MWh",
+      "tariff_year": "2026",
+      "retrieval_date": "2026-11-10",
+      "source_title": "Market design: SDAC day-ahead auction (single clearing price per MTU)",
+      "source_url": "https://www.epexspot.com/en/downloads",
+      "notes": "The coupled day-ahead auction produces one clearing price per market time unit. There is no classic bid-ask spread on a filled DA auction trade. The sourced DA preset therefore sets slippage to 0 (pure auction-fill paper assumption). The previous 0.50 \u20ac/MWh figure remains an ASSUMED conservatism (A-C2) in the assumed preset, not a published fee."
+    },
+    {
+      "id": "A-DEGRADATION",
+      "item": "Battery degradation \u20ac/MWh throughput",
+      "status": "assumed",
+      "value": 5.0,
+      "unit": "EUR/MWh throughput",
+      "tariff_year": null,
+      "retrieval_date": "2026-11-10",
+      "source_title": "NREL/NLR 2025 Annual Technology Baseline \u2014 Utility-Scale Battery Storage (context only; no published \u20ac/MWh wear tariff)",
+      "source_url": "https://atb.nlr.gov/electricity/2025/utility-scale_battery_storage",
+      "notes": "No public exchange or TSO document publishes a battery degradation tariff in \u20ac/MWh. NREL/NLR ATB 2025 (LFP utility-scale, retrieved 2026-11-10) states a 15-year technical life, approximately one cycle per day, variable O&M of zero, and fixed O&M at 4% of capital cost in $/kW including augmentation so the system can hold rated capacity over that life (Cole et al., 2025). A primary-source 2024 overnight $/kWh table was not successfully retrieved this day (NREL PDF TLS failure), so no \u20ac/MWh figure is derived here. The sourced preset therefore keeps the existing ASSUMED 5 \u20ac/MWh throughput wear proxy (A-C3; Kies et al. 2018 DOI 10.1088/1742-6596/977/1/012005 is order-of-magnitude framing only)."
+    }
+  ],
+  "sourced_preset": {
+    "label": "sourced",
+    "retrieval_date": "2026-11-10",
+    "fee_eur_per_mwh": 0.015,
+    "fee_composition": {
+      "ecc_da_clearing_eur_per_mwh": 0.015,
+      "epex_trading_eur_per_mwh": null,
+      "epex_trading_status": "not_found_in_current_public_price_list"
+    },
+    "slippage_eur_per_mwh": 0.0,
+    "slippage_status": "sourced",
+    "degradation_eur_per_mwh": 5.0,
+    "degradation_status": "assumed",
+    "grid_access_eur_per_mwh": 0.0,
+    "grid_access_status": "sourced_enwg_118_6_if_eligible",
+    "imbalance": "not_applied_da_only_paper_model",
+    "fixed_membership_fees": "disclosed_in_catalog_not_amortised_into_per_mwh",
+    "still_assumed": [
+      "degradation_eur_per_mwh"
+    ],
+    "not_in_preset": [
+      "current EPEX SPOT trading fee (not in the public 2026 Price List Guide)",
+      "ECC / EPEX annual membership and technical fees (fixed; not converted to \u20ac/MWh)",
+      "ECC intraday clearing 0.035 \u20ac/MWh (DA-only model)",
+      "Nord Pool Nordic/Baltic variable fees (comparator only)",
+      "reBAP imbalance (not a fixed tariff; no imbalance volume in this model)"
+    ],
+    "paper_trading_only": true,
+    "is_lower_bound_on_exchange_fees": true,
+    "catalog": [
+      {
+        "id": "S-EPEX-DA-TRADING",
+        "item": "EPEX SPOT Day-Ahead trading fee (DE-LU)",
+        "status": "not_found",
+        "value": null,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "EPEX SPOT Fees page and New Price List Guide (public)",
+        "source_url": "https://www.epexspot.com/en/fees",
+        "notes": "The public Fees page and the downloadable Price List Guide describe Market Access, Flat Trading Fees, and Technical Add-ons qualitatively and direct readers to sales@epexspot.com. No current \u20ac/MWh or annual membership figure is printed in those public documents (retrieved 2026-11-10). The sourced per-MWh preset therefore does not include an EPEX trading-fee component. This is a lower bound on total exchange costs if a member still pays a trading fee. Guide PDF: https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf"
+      },
+      {
+        "id": "H-EPEX-2015",
+        "item": "Historical EPEX SPOT trading fees (NOT used in the sourced preset)",
+        "status": "historical",
+        "value": "DA DE-AT-CH 0.04; FR DA 0.07; ID 0.10 (2015 list)",
+        "unit": "EUR/MWh",
+        "tariff_year": "2015",
+        "retrieval_date": "2026-11-10",
+        "source_title": "EPEX SPOT Price List valid 1 January 2015 (unofficial host; stale)",
+        "source_url": "https://abcdocz.com/doc/668004/price-list---epex-spot",
+        "notes": "Historical public list only, retrieved for context. Entrance 25,000 \u20ac; annual one/two/three market access 10,000 / 20,000 / 30,000 \u20ac; ETS Standard 8,000 \u20ac / Light 3,500 \u20ac. These are not current official rates and are not used in the sourced preset. They informed the earlier ASSUMED 0.05 \u20ac/MWh order-of-magnitude (A-C1)."
+      },
+      {
+        "id": "S-ECC-DA-CLEARING",
+        "item": "ECC Lux clearing fee \u2014 Power Day-ahead Spot trades",
+        "status": "sourced",
+        "value": 0.015,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List, Document Release 085b, 02.11.2026, \u00a74.1 Power spot",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "Official current price list (English information version; German legally binding), publishing date 2 November 2026, linked from https://www.ecc.de/en/rules-regulations/rules. Standard rate 0.015 \u20ac/MWh for Power Day-ahead Spot trades (ECC Lux). Exceptions (Serbia/Slovenia 0.020, Ireland, GB) do not apply to DE-LU. Baltic DA auction waiver is also not DE-LU. This is the only variable \u20ac/MWh figure in the sourced DA fee preset."
+      },
+      {
+        "id": "S-ECC-ID-CLEARING",
+        "item": "ECC Lux clearing fee \u2014 Power Intraday Spot / SIDC IDAs",
+        "status": "sourced",
+        "value": 0.035,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List 085b, 02.11.2026, \u00a74.1 Power spot",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "0.035 \u20ac/MWh for Power Intraday Spot trades; footnote *4 states the same rate applies to Pan-European Intraday Auctions (IDAs). Documented for completeness. The current paper model is day-ahead only, so this rate is not added to the sourced DA ExecutionCosts preset."
+      },
+      {
+        "id": "S-ECC-MEMBERSHIP",
+        "item": "ECC membership fees (fixed, not converted to \u20ac/MWh)",
+        "status": "sourced",
+        "value": "NCM 1,000 \u20ac p.a.; Institution CM 12,500 \u20ac p.a.; DCP Power Markets Plus 12,500 \u20ac p.a.",
+        "unit": "EUR/year",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "ECC Price List 085b, 02.11.2026, \u00a72 Membership Fees",
+        "source_url": "https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf",
+        "notes": "Non-Clearing Member 1,000 \u20ac p.a. (clearing-fee credit against the membership fee; first 12 months waived). Institution Clearing Member 12,500 \u20ac p.a. (first 12 months waived). DCP Power Markets Plus 12,500 \u20ac p.a. (or 11,000 \u00a3 if GBP power only). Technical access EUREX GUI via public Internet 7,500 \u20ac p.a. (not applicable to DCP). Fixed fees are disclosed here and are not amortised into the per-MWh sourced preset: any \u20ac/MWh conversion would depend on annual throughput and membership type (modelling choice, not a published tariff)."
+      },
+      {
+        "id": "S-NORDPOOL-NORDIC-BALTIC",
+        "item": "Nord Pool variable DA fees (Nordic/Baltic 2026 schedule; NEMO comparator, not EPEX DE-LU)",
+        "status": "sourced",
+        "value": "DA trading 0.040 + clearing 0.015 = 0.055",
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Nord Pool AS Fee Schedule, Nordic / Baltic Market, effective 1 January 2026",
+        "source_url": "https://www.nordpoolgroup.com/4a7ad8/globalassets/trading-and-services/nord-pool-fee-schedule-2026-nordic-and-baltic-market.pdf",
+        "notes": "Official PDF retrieved 2026-11-10. Section 1.4: Day-ahead market trading 0.040 \u20ac/MWh and clearing 0.015 \u20ac/MWh (combined 0.055); small participant DA 0.125+0.015=0.140; intraday continuous 0.109+0.015=0.124; SIDC IDA 0.060+0.015=0.075. Annual participant access DA+ID continuous: 21,500 \u20ac (additional area 11,000 \u20ac); small participant can waive the annual fee and pay the higher variable rate (floors apply). Note (b) lists Germany/Luxembourg among the areas used for the 65,000 \u20ac annual access-fee cap when applying for multiple Nord Pool areas. The document title is 'Nordic / Baltic Market'; a separate public CWE/DE-LU fee schedule was not found at retrieval. These rates are a published NEMO comparator, not a substitute for the unpublished current EPEX DE-LU trading fee, and they are not added to the sourced ExecutionCosts preset."
+      },
+      {
+        "id": "S-ENWG-118-6",
+        "item": "German grid-access charges (Netzentgelte) for eligible electricity storage",
+        "status": "sourced",
+        "value": 0.0,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026 (statutory)",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Energiewirtschaftsgesetz (EnWG) \u00a7 118(6), gesetze-im-internet.de",
+        "source_url": "https://www.gesetze-im-internet.de/enwg_2005/__118.html",
+        "notes": "Official text: installations for storing electrical energy newly built after 31 December 2008 and commissioned from 4 August 2011 within 18 years (i.e. by 4 August 2029) are exempt for 20 years from commissioning from grid-access charges (Entgelte f\u00fcr den Netzzugang) on energy withdrawn for storage, provided the energy is taken from a transmission or distribution grid and the recovered energy is fed back into the same grid. The exemption does not automatically cover every levy or concession fee. For the illustrative 1 MW / 2 MWh paper asset, assumed commissioned in the exemption window and same-grid, the sourced preset applies 0 \u20ac/MWh grid-access charge on stored energy. This is a legal condition, not a published TSO tariff table."
+      },
+      {
+        "id": "S-REBAP",
+        "item": "German imbalance settlement price (reBAP)",
+        "status": "not_applied",
+        "value": null,
+        "unit": "EUR/MWh (quarter-hourly, published, not a fixed tariff)",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Netztransparenz \u2014 Ausgleichsenergiepreis / reBAP (four German TSOs)",
+        "source_url": "https://www.netztransparenz.de/de-de/Regelenergie/Ausgleichsenergiepreis",
+        "notes": "reBAP is a published quarter-hourly settlement price for balance-group imbalances, not a fixed \u20ac/MWh trading fee. It can be positive or negative. The current paper model is day-ahead only and settles planned DA volumes at the DA clearing price, so no imbalance volume is simulated and no reBAP charge is applied. A live physical asset would face reBAP on residual imbalances."
+      },
+      {
+        "id": "S-DA-SLIPPAGE",
+        "item": "Day-ahead slippage / bid-ask (SDAC single clearing price)",
+        "status": "sourced",
+        "value": 0.0,
+        "unit": "EUR/MWh",
+        "tariff_year": "2026",
+        "retrieval_date": "2026-11-10",
+        "source_title": "Market design: SDAC day-ahead auction (single clearing price per MTU)",
+        "source_url": "https://www.epexspot.com/en/downloads",
+        "notes": "The coupled day-ahead auction produces one clearing price per market time unit. There is no classic bid-ask spread on a filled DA auction trade. The sourced DA preset therefore sets slippage to 0 (pure auction-fill paper assumption). The previous 0.50 \u20ac/MWh figure remains an ASSUMED conservatism (A-C2) in the assumed preset, not a published fee."
+      },
+      {
+        "id": "A-DEGRADATION",
+        "item": "Battery degradation \u20ac/MWh throughput",
+        "status": "assumed",
+        "value": 5.0,
+        "unit": "EUR/MWh throughput",
+        "tariff_year": null,
+        "retrieval_date": "2026-11-10",
+        "source_title": "NREL/NLR 2025 Annual Technology Baseline \u2014 Utility-Scale Battery Storage (context only; no published \u20ac/MWh wear tariff)",
+        "source_url": "https://atb.nlr.gov/electricity/2025/utility-scale_battery_storage",
+        "notes": "No public exchange or TSO document publishes a battery degradation tariff in \u20ac/MWh. NREL/NLR ATB 2025 (LFP utility-scale, retrieved 2026-11-10) states a 15-year technical life, approximately one cycle per day, variable O&M of zero, and fixed O&M at 4% of capital cost in $/kW including augmentation so the system can hold rated capacity over that life (Cole et al., 2025). A primary-source 2024 overnight $/kWh table was not successfully retrieved this day (NREL PDF TLS failure), so no \u20ac/MWh figure is derived here. The sourced preset therefore keeps the existing ASSUMED 5 \u20ac/MWh throughput wear proxy (A-C3; Kies et al. 2018 DOI 10.1088/1742-6596/977/1/012005 is order-of-magnitude framing only)."
+      }
+    ]
+  },
+  "fee_retrieval_date": "2026-11-10",
+  "assumptions": [
+    "Cost-aware LP puts fee+slippage+degradation in the objective (re-optimises)",
+    "Baselines reuse prior gross (deg=0) dumps and the same accounting layer for the selected preset",
+    "Tight Mondrian: hour-bucket \u00d7 hourly residual-load tercile \u00d7 7d/60d hour volatility, with parent fallback",
+    "Sourced fee is ECC DA clearing only; current EPEX trading fee is not in the public price list (lower bound)",
+    "Degradation remains ASSUMED at 5 \u20ac/MWh in both presets",
+    "Paper trading only"
+  ],
+  "attribution": "Energy-Charts / SMARD \u2014 CC BY 4.0",
+  "paper_trading_only": true,
+  "prior_reference": {
+    "nonreopt_ml_net_eur": 57152.53,
+    "threshold_net_eur": 31944.34,
+    "mondrian_coverage_80": 0.7818991097922848
+  }
+}

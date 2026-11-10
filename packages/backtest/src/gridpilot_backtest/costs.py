@@ -12,6 +12,13 @@ import numpy as np
 import pandas as pd
 
 from gridpilot_backtest.metrics import historical_cvar, max_drawdown, summarise
+from gridpilot_backtest.fees import (
+    ASSUMED_DEGRADATION_EUR_PER_MWH,
+    ECC_DA_CLEARING_EUR_PER_MWH,
+    FEE_CATALOG,
+    catalog_dicts,
+    sourced_preset_components,
+)
 
 # Crossref-checked / public sources for ASSUMED ranges (not fabricated point estimates).
 COST_SOURCES = [
@@ -77,8 +84,20 @@ class ExecutionCosts:
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
-        d["assumed"] = True
-        d["sources"] = COST_SOURCES
+        if self.label == "sourced":
+            d["assumed"] = False
+            d["cost_basis"] = "sourced"
+            d["still_assumed"] = ["degradation_eur_per_mwh"]
+            d["is_lower_bound_on_exchange_fees"] = True
+            d["fee_composition"] = {
+                "ecc_da_clearing_eur_per_mwh": ECC_DA_CLEARING_EUR_PER_MWH,
+                "epex_trading_eur_per_mwh": None,
+            }
+            d["sources"] = catalog_dicts()
+        else:
+            d["assumed"] = self.label not in {"zero"}
+            d["cost_basis"] = "zero" if self.label == "zero" else "assumed"
+            d["sources"] = COST_SOURCES
         return d
 
 
@@ -89,13 +108,47 @@ ZERO_COSTS = ExecutionCosts(
     label="zero",
 )
 
+# Previous default: all three legs ASSUMED (A-C1–A-C3). Kept as the "base" label.
+ASSUMED_BASE_COSTS = ExecutionCosts(
+    fee_eur_per_mwh=0.05,
+    slippage_eur_per_mwh=0.50,
+    degradation_eur_per_mwh=ASSUMED_DEGRADATION_EUR_PER_MWH,
+    label="base",
+)
+
+# Sourced DA preset: ECC 0.015 €/MWh clearing only; DA slippage 0; degradation still ASSUMED.
+# EPEX trading fee is omitted because it is not in the current public price list (lower bound).
+SOURCED_COSTS = ExecutionCosts(
+    fee_eur_per_mwh=ECC_DA_CLEARING_EUR_PER_MWH,
+    slippage_eur_per_mwh=0.0,
+    degradation_eur_per_mwh=ASSUMED_DEGRADATION_EUR_PER_MWH,
+    label="sourced",
+)
+
 # Named sweep used by the long-window net-of-costs evaluation.
 DEFAULT_COST_SWEEP: tuple[ExecutionCosts, ...] = (
     ZERO_COSTS,
     ExecutionCosts(0.05, 0.0, 5.0, label="fee_deg"),
-    ExecutionCosts(0.05, 0.50, 5.0, label="base"),
+    ASSUMED_BASE_COSTS,
     ExecutionCosts(0.10, 1.0, 10.0, label="stress"),
+    SOURCED_COSTS,
 )
+
+_PRESETS = {
+    "zero": ZERO_COSTS,
+    "assumed": ASSUMED_BASE_COSTS,
+    "base": ASSUMED_BASE_COSTS,
+    "sourced": SOURCED_COSTS,
+}
+
+
+def get_cost_preset(name: str) -> ExecutionCosts:
+    """Return a named cost preset (``assumed`` / ``base``, ``sourced``, or ``zero``)."""
+    key = (name or "").strip().lower()
+    if key not in _PRESETS:
+        known = ", ".join(sorted(_PRESETS))
+        raise ValueError(f"Unknown cost preset {name!r}. Known: {known}")
+    return _PRESETS[key]
 
 
 def apply_costs_to_actions(
