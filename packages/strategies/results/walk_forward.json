@@ -1,0 +1,91 @@
+{
+  "window": {
+    "start": "2026-08-01",
+    "end": "2026-10-15",
+    "n_hours": 1824
+  },
+  "battery": "1 MW / 2 MWh, eta 0.95/0.95, max 2 cycles/day",
+  "price_stats": {
+    "mean": 140.48313733552632,
+    "min": -18.995,
+    "max": 697.3075
+  },
+  "strategies": {
+    "threshold_arbitrage": {
+      "final_cash_eur": 9993.048765945285,
+      "n_days": 75,
+      "daily_pnl_mean": 133.24065021260378,
+      "daily_pnl_p10": 0.0,
+      "daily_pnl_p50": 144.73056447368435,
+      "daily_pnl_p90": 301.47007789473673,
+      "cvar_5pct_loss_daily": 150.3712153739616,
+      "cycles": 47.80391793628807,
+      "killed": false,
+      "extra": {
+        "var_5pct_loss": 70.35653947368436,
+        "cvar_5pct_loss": 150.3712153739616
+      },
+      "capture_vs_pf_pct": 39.61027529260424,
+      "vs_threshold_pct": 100.0
+    },
+    "forecast_driven_lp": {
+      "final_cash_eur": 14145.42252131232,
+      "n_days": 75,
+      "daily_pnl_mean": 186.62719211749763,
+      "daily_pnl_p10": 20.8578556578952,
+      "daily_pnl_p50": 183.09782153739593,
+      "daily_pnl_p90": 354.1389628947363,
+      "cvar_5pct_loss_daily": 16.743992924746333,
+      "cycles": 83.1266499307478,
+      "killed": false,
+      "extra": {
+        "var_5pct_loss": -0.0,
+        "cvar_5pct_loss": 16.743992924746333
+      },
+      "capture_vs_pf_pct": 56.06938316050372,
+      "vs_threshold_pct": 141.55262175361
+    },
+    "risk_aware_forecast_lp": {
+      "final_cash_eur": 10107.119797351099,
+      "n_days": 75,
+      "daily_pnl_mean": 132.78315579801466,
+      "daily_pnl_p10": 0.0,
+      "daily_pnl_p50": 113.83209605263164,
+      "daily_pnl_p90": 310.1683118421061,
+      "cvar_5pct_loss_daily": 3.916827255639094,
+      "cycles": 51.76043282548474,
+      "killed": false,
+      "extra": {
+        "var_5pct_loss": -0.0,
+        "cvar_5pct_loss": 3.916827255639094
+      },
+      "capture_vs_pf_pct": 40.06242809028632,
+      "vs_threshold_pct": 101.141503800067
+    },
+    "perfect_foresight_daily": {
+      "final_cash_eur": 25228.42543286014,
+      "n_days": 75,
+      "daily_pnl_mean": 330.6263484644509,
+      "daily_pnl_p10": 163.07404894736902,
+      "daily_pnl_p50": 304.5927894736842,
+      "daily_pnl_p90": 484.1928913157877,
+      "cvar_5pct_loss_daily": -105.31838618420875,
+      "cycles": 117.520529778393,
+      "killed": false,
+      "extra": {
+        "var_5pct_loss": -121.97358526315638,
+        "cvar_5pct_loss": -105.31838618420875
+      },
+      "capture_vs_pf_pct": 100.0,
+      "vs_threshold_pct": 252.45974500629464
+    }
+  },
+  "limitations": [
+    "Hourly resample of 15-min Energy-Charts MTU",
+    "No fees/slippage",
+    "Forecast is rolling hour-of-day quantile climatology (not ML)",
+    "In-sample walk over the same window used for lookback \u2014 early days are warm-up",
+    "Paper trading only"
+  ],
+  "attribution": "Energy-Charts / SMARD \u2014 CC BY 4.0"
+}
