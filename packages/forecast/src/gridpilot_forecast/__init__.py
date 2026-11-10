@@ -11,6 +11,10 @@ from gridpilot_forecast.conformal import (
     coverage,
     reliability_table,
 )
+from gridpilot_forecast.intraday import (
+    IntradayLayerConfig,
+    reoptimize_after_da,
+)
 from gridpilot_forecast.bid_curves import (
     HourBidCurve,
     build_curves_for_day,
@@ -51,6 +55,8 @@ __all__ = [
     "gate_closure_time",
     "rolling_hod_quantiles",
     "settle_locked_schedule",
+    "IntradayLayerConfig",
+    "reoptimize_after_da",
     "RollingCQR",
     "MondrianAsymmetricCQR",
     "build_tight_hour_regimes",

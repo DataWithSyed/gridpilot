@@ -64,3 +64,7 @@ Same window as the assumed-cost cost-aware run: **2025-11-01 → 2026-10-30**, 8
 | **Cost-aware PF** | **82,271** | **100%** | +137.1 [119.0, 152.7] |
 
 Under the earlier **assumed** preset (0.05 / 0.50 / 5) the same cost-aware ML printed **64,646** € (79.5% of 81,314). Sourced net is slightly higher mainly because the variable fee is lower and DA slippage is 0; degradation (still ASSUMED 5 €/MWh) remains the dominant cost line (cost-aware ML: **€8,219** degradation vs **€25** fees). Near-live 14-day paper pilot (2026-10-28 → 2026-11-10): ML gross / net **3,816 / 3,351** € (88.9% / 87.0% of PF). These are not real-money results.
+
+## Intraday / reBAP follow-up (2026-11-10)
+
+Energy-Charts still has **no public ID or ID-index series** (see [`docs/INTRADAY.md`](INTRADAY.md)). Netztransparenz reBAP exists but the data API requires Extranet OAuth; it was **not fetchable** in this session. A paper post-DA re-optimisation layer uses labelled proxies (ID mid = DA, reBAP = DA) and is documented there. Official reBAP is still not applied as a published tariff series.

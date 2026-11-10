@@ -179,6 +179,18 @@ These schedule totals are **not** a re-run of the published sourced cost-aware M
 
 **Honest takeaway: bid curves did not improve on the locked schedule.** Every 90% CI excludes zero. The curves under-cycle (151–188 vs 458–479 cycles) because they have no explicit water value; they skip planned cycles when the realised price misses the steps or SoC is already in the wrong place. Anchored curves beat standalone quantile curves under ML but still trail the locked LP. The bidding code is kept as infrastructure for later water-value / intraday / imbalance work. Window length here is **8,736** h (364 days; DST cancel).
 
+### Post-DA re-optimisation and imbalance proxies (same window, 2026-11-10 Asia/Karachi)
+
+Energy-Charts **does not** publish public intraday or ID-index prices (verified 2026-11-10: `/price` is day-ahead only; `market=intraday` is ignored). Official **reBAP** is not fetchable without Netztransparenz Extranet OAuth client credentials (API docs v1.14). The published run therefore uses labelled proxies: **PROXY_ID_EQ_DA** and **PROXY_REBAP_EQ_DA** (both legs equal the realised DA price). Design: [`docs/INTRADAY.md`](docs/INTRADAY.md). Results: [`packages/forecast/results/INTRADAY_IMBALANCE.md`](packages/forecast/results/INTRADAY_IMBALANCE.md). Paper trading only. DA baseline is the same climatology cost-aware lock as the bidding study (60,379 EUR).
+
+| Policy | Net EUR | Δ vs locked DA | Δ€/day (90% CI) |
+|---|---:|---:|---|
+| Locked DA schedule (climatology P50) | 60,379 | — | — |
+| Post-DA re-opt, full ID close | **83,394** | **+23,015** | **+63.23 [52.36, 73.28]** |
+| Same, ASSUMED 20% unfilled at reBAP proxy | 83,408 | +23,029 | +63.27 [52.40, 73.32] |
+
+**Honest takeaway: under these proxies, reshaping after DA prices are published is a real gain** (CI excludes zero). That is the value of seeing the DA result and trading the delta at DA, minus ECC ID clearing 0.035 €/MWh — **not** a measured ID–DA spread. The 20% unfilled case is €14 higher only because it avoids those ID fees (reBAP proxy = DA); it is **not** an official reBAP test. True ID or reBAP series could change the sign or size of the leftover term.
+
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
@@ -207,7 +219,7 @@ Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1
 | `packages/data` | Energy-Charts adapters + optional ENTSO-E env token |
 | `packages/risk` | Block-bootstrap VaR/CVaR hooks |
 | `packages/strategies` | Climatology ForecastDrivenLP / RiskAwareForecastLP |
-| `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; gate-closure bids; long-window eval |
+| `packages/forecast` | Fundamentals + CQR; cost-aware LP; gate-closure bids; post-DA ID/imbalance proxies; long-window eval |
 | `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
 | `packages/live` | Near-live paper pilot with gross/net fee toggle |
 | `packages/simulator` | Real-time paper replay, Streamlit dashboard, HTML/PNG report |
@@ -228,6 +240,7 @@ python packages/forecast/scripts/run_long_window_eval.py
 python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
 python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs sourced --skip-forecast
 python packages/forecast/scripts/run_gate_closure_bidding.py --forecast climatology --costs sourced
+python packages/forecast/scripts/run_intraday_imbalance.py --costs sourced
 python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
@@ -250,6 +263,7 @@ See [`docs/related-work.md`](docs/related-work.md). Highlights:
 - [`docs/fees.md`](docs/fees.md) — sourced vs assumed market fees (retrieval 2026-11-10)
 - [`docs/SIMULATOR.md`](docs/SIMULATOR.md) — paper market simulator, how to run, limitations
 - [`docs/BIDDING.md`](docs/BIDDING.md) — SDAC-style gate-closure bid curves; honest negative vs locked schedule
+- [`docs/INTRADAY.md`](docs/INTRADAY.md) — post-DA re-opt and imbalance; Energy-Charts has no public ID series; reBAP not fetchable without OAuth
 - [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
 - [`docs/limitations.md`](docs/limitations.md) — honest scope limits
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help
