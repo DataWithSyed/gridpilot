@@ -22,8 +22,20 @@ from gridpilot_core.battery import BatteryConfig, BatteryState, apply_dispatch
 from gridpilot_core.risk import RiskLimits, RiskManager
 from gridpilot_core.strategy import Decision, ThresholdArbitrage
 from gridpilot_forecast.cost_aware_lp import solve_day_lp_with_costs
-from gridpilot_simulator.clock import SimClock, as_berlin, delivery_day, gate_closure_for, is_gate_closure_tick
+from gridpilot_forecast.bid_curves import build_curves_for_day
+from gridpilot_forecast.cvar_lp import historical_day_scenarios, solve_day_lp_cvar
+from gridpilot_forecast.intraday import IntradayLayerConfig, reoptimize_after_da
+from gridpilot_simulator.clock import (
+    SimClock,
+    as_berlin,
+    delivery_day,
+    gate_closure_for,
+    is_da_publication_tick,
+    is_gate_closure_tick,
+)
 from gridpilot_simulator.scenarios import Scenario
+
+POLICIES = ("cost_aware", "quantile_bids", "cvar", "id_reopt")
 
 # Match the paper 1 MW / 2 MWh agent used in backtests.
 DEFAULT_DRAWDOWN_EUR = 20_000.0
@@ -58,6 +70,8 @@ class SimConfig:
     forecast_bias: float = 0.0  # used by forecast_failure
     on_tick: Callable[[dict[str, Any]], None] | None = None
     paper_trading_only: bool = True
+    policy: str = "cost_aware"  # cost_aware | quantile_bids | cvar | id_reopt
+    cvar_lambda: float = 2.0
 
     def __post_init__(self) -> None:
         if self.battery is None:
@@ -68,6 +82,8 @@ class SimConfig:
                 max_drawdown_eur=DEFAULT_DRAWDOWN_EUR,
                 enable_kill_switch=True,
             )
+        if self.policy not in POLICIES:
+            raise ValueError(f"Unknown simulator policy {self.policy!r}. Known: {', '.join(POLICIES)}")
 
 
 @dataclass
@@ -90,9 +106,13 @@ class Simulator:
 
         plan_ml: dict[pd.Timestamp, Decision] = {}
         plan_th: dict[pd.Timestamp, Decision] = {}
+        plan_da: dict[pd.Timestamp, Decision] = {}
+        bid_curves: dict[pd.Timestamp, object] = {}
+        pending_delivery_hours: pd.DatetimeIndex | None = None
         rows: list[dict[str, Any]] = []
         events: list[dict[str, Any]] = []
         forecasts: dict[str, pd.DataFrame] = {}
+        policy = cfg.policy
 
         # Oracle PF is computed once for the labelled baseline only; it is never
         # fed back into the agent's visible history or its schedule.
@@ -123,16 +143,53 @@ class Simulator:
                 if len(hours):
                     start_ml = BatteryState(soc=state_ml.soc)
                     start_th = BatteryState(soc=state_th.soc)
-                    plan_ml = solve_day_lp_with_costs(
+                    plan_da = solve_day_lp_with_costs(
                         fan["p50"], batt, start_ml, cfg.costs, dt_h=1.0, note="sim_cost_aware"
                     )
+                    plan_ml = dict(plan_da)
+                    bid_curves = {}
+                    pending_delivery_hours = hours
+                    if policy == "quantile_bids":
+                        bid_curves = build_curves_for_day(
+                            fan["p10"], fan["p50"], fan["p90"], batt.power_mw, cfg.costs
+                        )
+                    elif policy == "cvar":
+                        scen_paths = historical_day_scenarios(visible, hours, n_days=60)
+                        if scen_paths:
+                            plan_ml = solve_day_lp_cvar(
+                                scen_paths, batt, start_ml, cfg.costs, lam=cfg.cvar_lambda, note="sim_cvar"
+                            )
                     plan_th = _threshold_day(fan["p50"], batt, start_th)
                     events.append({
                         "ts": str(ts),
                         "type": "gate_closure",
                         "delivery_day": str(delivery.date()),
+                        "policy": policy,
                         "visible_hours": int(len(visible)),
                         "forecast_p50_mean": float(fan["p50"].mean()) if len(fan) else None,
+                    })
+
+            if policy == "id_reopt" and is_da_publication_tick(ts) and pending_delivery_hours is not None:
+                hours = pending_delivery_hours
+                day_px = prices.reindex(hours).dropna()
+                if len(day_px) and plan_da:
+                    # Realised DA for tomorrow is public at this tick; not lookahead.
+                    out = reoptimize_after_da(
+                        plan_da, day_px, batt, state_ml.soc, IntradayLayerConfig(da_costs=cfg.costs)
+                    )
+                    phys = out["physical_actions"]
+                    plan_ml = {}
+                    for _, row in phys.iterrows():
+                        plan_ml[pd.Timestamp(row["ts"])] = Decision(
+                            charge_mw=float(row["charge_mw"]),
+                            discharge_mw=float(row["discharge_mw"]),
+                            note="sim_id_reopt",
+                        )
+                    events.append({
+                        "ts": str(ts),
+                        "type": "id_reopt",
+                        "id_price_source": out["id_price_source"],
+                        "id_throughput_mwh": out["id_throughput_mwh"],
                     })
 
             # Settlement at delivery ticks uses the realised (possibly NaN) price.
@@ -163,6 +220,9 @@ class Simulator:
                 return new_st, gin, gout, ch, dh
 
             risk.reset_day(str(delivery_day(ts).date()))
+            if policy == "quantile_bids" and ts in bid_curves and np.isfinite(raw_px):
+                ch_b, dh_b = bid_curves[ts].accepted_volume(float(raw_px))
+                plan_ml[ts] = Decision(charge_mw=ch_b, discharge_mw=dh_b, note="sim_bid_clear")
             state_ml, gin_m, gout_m, ch_m, dh_m = _act(plan_ml, state_ml, count_cycles=True)
             state_th, gin_t, gout_t, ch_t, dh_t = _act(plan_th, state_th, count_cycles=False)
             if np.isfinite(raw_px):
@@ -247,6 +307,8 @@ class Simulator:
             "seed": cfg.seed,
             "speed": cfg.speed,
             "gate_closure": "12:00 Europe/Berlin on D-1; no lookahead into delivery-day prices",
+            "policy": policy,
+            "cvar_lambda": cfg.cvar_lambda if policy == "cvar" else None,
             "costs": cfg.costs.to_dict(),
             "battery": asdict(batt),
             "risk": {
@@ -271,7 +333,7 @@ class Simulator:
             "n_ticks": int(len(actions)),
             "limitations": [
                 "Paper trading only — no exchange connectivity, no real orders.",
-                "Day-ahead only; no intraday or imbalance (reBAP) simulation.",
+                "Intraday/imbalance uses labelled proxies (ID mid = DA, reBAP = DA) when policy=id_reopt; Energy-Charts has no public ID series and official reBAP needs OAuth. Tick accounting still applies the DA fee preset.",
                 "Sourced fee preset is ECC DA clearing only; current EPEX trading fee is not in the public price list; degradation is still ASSUMED.",
                 "Perfect foresight is an oracle baseline with lookahead; the agent never sees it.",
                 "These figures are not real-money performance.",

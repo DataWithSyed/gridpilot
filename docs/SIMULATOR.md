@@ -11,6 +11,23 @@
 - Live Streamlit dashboard (price, forecast fan, SoC, decisions, P&L, risk / kill-switch events) plus a JSON/CSV run and an exportable HTML/PNG demo report.
 - Deterministic **seeded** synthetic runs; scenario packs: `normal`, `price_spike`, `negative_prices`, `data_outage`, `forecast_failure`.
 
+## Agent policies
+
+`--policy` selects what is locked at 12:00 Europe/Berlin on D-1 (paper only):
+
+| Policy | Behaviour |
+| --- | --- |
+| `cost_aware` (default) | Cost-aware LP on the climatology P50 path (original behaviour). |
+| `quantile_bids` | P10/P50/P90 SDAC-style curves, cleared at the realised price with partial acceptance. |
+| `cvar` | Cost-aware CVaR LP on the last 60 causal daily paths (`--cvar-lambda`, default 2). |
+| `id_reopt` | Lock the cost-aware DA plan at gate closure, then re-optimise at 13:00 D-1 once DA prices are public. ID mid is the **PROXY_ID_EQ_DA** label (Energy-Charts has no public ID series). Tick cash still uses the DA fee preset. |
+
+See [`docs/BIDDING.md`](BIDDING.md), [`docs/INTRADAY.md`](INTRADAY.md), [`docs/CVAR.md`](CVAR.md) for the 12-month backtests and honest limitations.
+
+```bash
+gridpilot-sim run --scenario normal --policy cvar --cvar-lambda 2 --seed 0
+```
+
 ## How to run
 
 From the umbrella repo root:

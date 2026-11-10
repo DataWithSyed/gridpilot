@@ -259,7 +259,7 @@ python packages/forecast/scripts/run_cvar_frontier.py --costs sourced
 python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
-gridpilot-sim run --scenario normal --speed 0 --seed 0  # paper replay
+gridpilot-sim run --policy cost_aware --scenario normal --speed 0 --seed 0  # paper replay
 gridpilot-sim dashboard
 ```
 

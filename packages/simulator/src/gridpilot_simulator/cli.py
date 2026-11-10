@@ -43,6 +43,9 @@ def main(argv: list[str] | None = None) -> None:
     run.add_argument("--days", type=int, default=7)
     run.add_argument("--out", type=Path, default=None)
     run.add_argument("--cache", type=Path, default=None, help="Hourly DE-LU cache for --scenario historical")
+    run.add_argument("--policy", default="cost_aware", choices=("cost_aware", "quantile_bids", "cvar", "id_reopt"),
+                    help="Agent policy locked at gate closure (paper only)")
+    run.add_argument("--cvar-lambda", type=float, default=2.0)
 
     sub.add_parser("dashboard", help="Launch the Streamlit dashboard")
     rep = sub.add_parser("report", help="Rebuild HTML/PNG from a sim_run.json")
@@ -75,12 +78,12 @@ def main(argv: list[str] | None = None) -> None:
         scen = load_scenario("historical", cache=cache)
     else:
         scen = load_scenario(args.scenario, seed=args.seed, days=args.days)
-    cfg = SimConfig(speed=args.speed, seed=args.seed)
+    cfg = SimConfig(speed=args.speed, seed=args.seed, policy=args.policy, cvar_lambda=args.cvar_lambda)
     if scen.name == "forecast_failure":
         cfg.forecast_bias = 80.0
     print(
         f"gridpilot-sim run scenario={scen.name} kind={scen.kind} ticks={len(scen.prices)} "
-        f"speed={cfg.speed} seed={cfg.seed} (paper only)",
+        f"speed={cfg.speed} seed={cfg.seed} policy={cfg.policy} (paper only)",
         flush=True,
     )
     summary = run_simulation(scen, cfg)

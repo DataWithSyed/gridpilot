@@ -36,6 +36,15 @@ def is_gate_closure_tick(ts: pd.Timestamp) -> bool:
     return b.hour == GATE_CLOSURE_HOUR_BERLIN and b.minute == 0
 
 
+DA_PUBLICATION_HOUR_BERLIN = 13  # first hourly tick after ~12:45 D-1 publication
+
+
+def is_da_publication_tick(ts: pd.Timestamp) -> bool:
+    """True at 13:00 Europe/Berlin — DA prices for tomorrow are already public."""
+    t = as_berlin(ts)
+    return t.hour == DA_PUBLICATION_HOUR_BERLIN and t.minute == 0
+
+
 @dataclass
 class SimClock:
     index: pd.DatetimeIndex
