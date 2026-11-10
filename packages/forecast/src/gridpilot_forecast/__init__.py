@@ -11,6 +11,10 @@ from gridpilot_forecast.conformal import (
     coverage,
     reliability_table,
 )
+from gridpilot_forecast.cvar_lp import (
+    historical_day_scenarios,
+    solve_day_lp_cvar,
+)
 from gridpilot_forecast.intraday import (
     IntradayLayerConfig,
     reoptimize_after_da,
@@ -57,6 +61,8 @@ __all__ = [
     "settle_locked_schedule",
     "IntradayLayerConfig",
     "reoptimize_after_da",
+    "historical_day_scenarios",
+    "solve_day_lp_cvar",
     "RollingCQR",
     "MondrianAsymmetricCQR",
     "build_tight_hour_regimes",

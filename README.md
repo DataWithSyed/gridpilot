@@ -191,6 +191,20 @@ Energy-Charts **does not** publish public intraday or ID-index prices (verified 
 
 **Honest takeaway: under these proxies, reshaping after DA prices are published is a real gain** (CI excludes zero). That is the value of seeing the DA result and trading the delta at DA, minus ECC ID clearing 0.035 €/MWh — **not** a measured ID–DA spread. The 20% unfilled case is €14 higher only because it avoids those ID fees (reBAP proxy = DA); it is **not** an official reBAP test. True ID or reBAP series could change the sign or size of the leftover term.
 
+### Cost-aware CVaR frontier (same window, 2026-11-10 Asia/Karachi)
+
+A here-and-now daily LP maximises `E[cash] − λ CVaR₅%(loss)` under the sourced fee preset, with the last 60 causal daily price paths as scenarios. Design: [`docs/CVAR.md`](docs/CVAR.md). Results: [`packages/forecast/results/CVAR_FRONTIER.md`](packages/forecast/results/CVAR_FRONTIER.md). Paper trading only. Not a re-run of the published ML 65,473 EUR path.
+
+| λ | Net EUR | Mean €/day | OOS CVaR₅% loss € |
+|---:|---:|---:|---:|
+| 0 | 69,622 | 191.27 | 18.56 |
+| 1 | 67,864 | 186.44 | 9.09 |
+| 2 | 66,718 | 183.29 | 6.34 |
+| 5 | 63,743 | 175.12 | **6.68** |
+| 10 | 61,178 | 168.07 | **4.21** |
+
+**Honest takeaway:** λ=1–2 **improves** the risk/return trade-off (CVaR 18.56 → 9.09 / 6.34 for a 2–3k cash concession). **λ=5 does not improve OOS CVaR versus λ=2** (6.68 vs 6.34). λ=10 has the lowest CVaR at a larger cash cost.
+
 ### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
 
 Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
@@ -241,6 +255,7 @@ python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg +
 python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs sourced --skip-forecast
 python packages/forecast/scripts/run_gate_closure_bidding.py --forecast climatology --costs sourced
 python packages/forecast/scripts/run_intraday_imbalance.py --costs sourced
+python packages/forecast/scripts/run_cvar_frontier.py --costs sourced
 python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
 python packages/dashboard/scripts/healthcheck.py
 streamlit run packages/dashboard/app.py
@@ -264,6 +279,7 @@ See [`docs/related-work.md`](docs/related-work.md). Highlights:
 - [`docs/SIMULATOR.md`](docs/SIMULATOR.md) — paper market simulator, how to run, limitations
 - [`docs/BIDDING.md`](docs/BIDDING.md) — SDAC-style gate-closure bid curves; honest negative vs locked schedule
 - [`docs/INTRADAY.md`](docs/INTRADAY.md) — post-DA re-opt and imbalance; Energy-Charts has no public ID series; reBAP not fetchable without OAuth
+- [`docs/CVAR.md`](docs/CVAR.md) — cost-aware CVaR LP and return-vs-CVaR frontier under sourced fees
 - [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
 - [`docs/limitations.md`](docs/limitations.md) — honest scope limits
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help
