@@ -2,7 +2,7 @@
 
 **Open paper-trading agent stack for electricity markets** — live/near-live public data, pluggable charge/discharge strategies, risk limits, probabilistic P10/P50/P90 outcome tracking, ML forecasting, walk-forward backtests, and a Streamlit dashboard.
 
-GridPilot is one public GitHub project ([this repo](https://github.com/DataWithSyed/gridpilot)) with **module packages** under `packages/` plus linked sibling repos for core/data/risk/strategies.
+GridPilot is **one public GitHub project** ([this repo](https://github.com/DataWithSyed/gridpilot)). The former sibling repos (`gridpilot-core`, `gridpilot-data`, `gridpilot-risk`, `gridpilot-strategies`) now live under `packages/` in this repository.
 
 > **Paper trading only.** Nothing in GridPilot places real orders on any power exchange or broker. There is no live execution path in the public code.
 
@@ -14,30 +14,33 @@ Battery storage and flexible demand need an **agent loop**: observe the market �
 
 ```mermaid
 flowchart TB
-  subgraph data [gridpilot-data]
-    EC[Energy-Charts DE-LU DA<br/>CC BY 4.0]
-    ENTSO[ENTSO-E optional<br/>token via env]
-    Replay[Replay / cache]
-  end
+  subgraph repo ["DataWithSyed/gridpilot"]
+    subgraph data ["packages/data"]
+      EC[Energy-Charts DE-LU DA<br/>CC BY 4.0]
+      ENTSO[ENTSO-E optional<br/>token via env]
+      Replay[Replay / cache]
+    end
 
-  subgraph core [gridpilot-core]
-    Batt[Battery SoC / η / cycles]
-    StratIF[Strategy interface]
-    RiskCore[Risk limits + kill switch]
-    Paper[Paper-trading loop]
-    Pctl[Rolling P50 / P90 PnL]
-    Log[Event log]
-  end
+    subgraph core ["packages/core"]
+      Batt[Battery SoC / η / cycles]
+      StratIF[Strategy interface]
+      RiskCore[Risk limits + kill switch]
+      Paper[Paper-trading loop]
+      Pctl[Rolling P50 / P90 PnL]
+      Log[Event log]
+    end
 
-  subgraph brain [Decision modules]
-    FC["packages/forecast<br/>LEAR+GBM + TSO DA features<br/>+ Mondrian CQR"]
-    STR[gridpilot-strategies]
-    RSK[gridpilot-risk]
-  end
+    subgraph brain [Decision modules]
+      FC["packages/forecast<br/>LEAR+GBM + TSO DA features<br/>+ Mondrian CQR"]
+      STR[packages/strategies]
+      RSK[packages/risk]
+    end
 
-  subgraph eval [Evaluation in this repo]
-    BT["packages/backtest<br/>costs + equity figure"]
-    UI[packages/dashboard]
+    subgraph eval [Evaluation]
+      BT["packages/backtest<br/>costs + sourced fees + equity"]
+      UI[packages/dashboard]
+      LV[packages/live]
+    end
   end
 
   EC --> Replay
@@ -54,16 +57,17 @@ flowchart TB
   Paper --> BT
   BT --> UI
   Pctl --> UI
+  LV --> UI
 ```
 
 ## Roadmap
 
 - [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
-- [x] **Core runtime** ([`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core)): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
-- [x] **Data adapters** ([`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data)): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
+- [x] **Core runtime** (`packages/core`): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
+- [x] **Data adapters** (`packages/data`): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
 - [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / Mondrian / **tight Mondrian** CQR; **cost-aware LP**
-- [x] **Risk engine** ([`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk)): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
-- [x] **Strategy pack** ([`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies)): forecast-driven + risk-aware LP (climatology baseline)
+- [x] **Risk engine** (`packages/risk`): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
+- [x] **Strategy pack** (`packages/strategies`): forecast-driven + risk-aware LP (climatology baseline)
 - [x] **Backtest harness** (`packages/backtest`): walk-forward table, fees/slippage/degradation cost layer, **cost-aware re-optimisation**, equity + coverage figures, cost-sensitivity sweep
 - [x] **Dashboard** (`packages/dashboard`): Streamlit ops view (testable package + thin `app.py`)
 - [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, **gross and net-of-cost P&L**, forecast accuracy, next-day schedule
@@ -72,15 +76,18 @@ flowchart TB
 
 ```
 gridpilot/
-  packages/forecast/     # probabilistic DA price forecasts + ML strategies
-  packages/backtest/     # comparison harness + CLI
+  pyproject.toml         # one root install: pip install -e ".[dev,ui]"
+  packages/core/         # battery, paper loop, risk limits, P50/P90
+  packages/data/         # Energy-Charts adapters, optional ENTSO-E
+  packages/risk/         # block-bootstrap VaR/CVaR, kill-switch hooks
+  packages/strategies/   # climatology forecast-driven + risk-aware LP
+  packages/forecast/     # LEAR-lite + GBM, CQR, cost-aware LP
+  packages/backtest/     # comparison harness, sourced fees, equity
   packages/dashboard/    # Streamlit UI
   packages/live/         # near-live paper pilot + accuracy check
   results/live/          # committed live-pilot summaries
-  docs/                  # methods, assumptions, limitations
+  docs/                  # methods, assumptions, fees, limitations
 ```
-
-Sibling module repos (unchanged, linked): `gridpilot-core`, `gridpilot-data`, `gridpilot-risk`, `gridpilot-strategies`.
 
 ## Measured results so far (real runs)
 
@@ -182,10 +189,10 @@ Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1
 
 | Module | Highlight |
 |---|---|
-| [`gridpilot-core`](https://github.com/DataWithSyed/gridpilot-core) | Battery · paper loop · P50/P90 · kill switch |
-| [`gridpilot-data`](https://github.com/DataWithSyed/gridpilot-data) | Energy-Charts adapters + optional ENTSO-E env token |
-| [`gridpilot-risk`](https://github.com/DataWithSyed/gridpilot-risk) | Block-bootstrap VaR/CVaR hooks |
-| [`gridpilot-strategies`](https://github.com/DataWithSyed/gridpilot-strategies) | Climatology ForecastDrivenLP / RiskAwareForecastLP |
+| `packages/core` | Battery · paper loop · P50/P90 · kill switch |
+| `packages/data` | Energy-Charts adapters + optional ENTSO-E env token |
+| `packages/risk` | Block-bootstrap VaR/CVaR hooks |
+| `packages/strategies` | Climatology ForecastDrivenLP / RiskAwareForecastLP |
 | `packages/forecast` | Fundamentals + rolling / tight Mondrian CQR; cost-aware LP; long-window eval |
 | `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
 | `packages/live` | Near-live paper pilot with gross/net fee toggle |
@@ -194,17 +201,12 @@ Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1
 ## Quick start
 
 ```bash
-# sibling checkouts beside this repo recommended
 git clone https://github.com/DataWithSyed/gridpilot.git
-git clone https://github.com/DataWithSyed/gridpilot-core.git
-git clone https://github.com/DataWithSyed/gridpilot-strategies.git
-
 cd gridpilot
 python -m venv .venv && source .venv/bin/activate
-pip install -e packages/forecast -e packages/backtest -e "packages/dashboard[ui]"
-pip install -e ../gridpilot-core -e ../gridpilot-strategies
+pip install -e ".[dev,ui]"
 
-pytest -q packages/forecast packages/backtest packages/dashboard
+pytest -q
 # rebuild fundamentals cache if needed (API rate-limited):
 # python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
 python packages/forecast/scripts/run_long_window_eval.py

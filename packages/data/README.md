@@ -1,3 +1,5 @@
+> This package now lives in the **GridPilot umbrella**: [`packages/data`](https://github.com/DataWithSyed/gridpilot/tree/main/packages/data). Install the whole project from the repo root with `pip install -e ".[dev]"`.
+
 # gridpilot-data
 
 **Step 2** of [GridPilot](https://github.com/DataWithSyed/gridpilot) — pluggable market-data adapters for **paper trading**.

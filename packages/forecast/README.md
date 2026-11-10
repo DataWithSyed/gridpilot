@@ -28,7 +28,7 @@ Day-ahead TSO forecasts of **load / solar / wind** from Energy-Charts `public_po
 
 ```bash
 pip install -e packages/forecast
-pip install -e ../gridpilot-core ../gridpilot-strategies
+pip install -e ../..   # root install from the umbrella repo
 pytest -q packages/forecast
 # optional rebuild of gitignored cache (rate-limited API):
 python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30

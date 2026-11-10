@@ -11,7 +11,7 @@ Thanks for interest in improving GridPilot.
 5. **Link, don’t fork-duplicate.** Prefer adapters that call or cite prior DataWithSyed energy repos instead of copying their studies wholesale.
 6. **Small PRs.** One module or fix per PR when possible. Update the umbrella roadmap checkbox when a step lands.
 
-## Dev loop (per module repo)
+## Dev loop (this repo)
 
 ```bash
 python -m venv .venv && source .venv/bin/activate

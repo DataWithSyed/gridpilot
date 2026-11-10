@@ -1,3 +1,5 @@
+> This package now lives in the **GridPilot umbrella**: [`packages/risk`](https://github.com/DataWithSyed/gridpilot/tree/main/packages/risk). Install the whole project from the repo root with `pip install -e ".[dev]"`.
+
 # gridpilot-risk
 
 **Step 4** of [GridPilot](https://github.com/DataWithSyed/gridpilot) — scenario risk engine for paper trading.

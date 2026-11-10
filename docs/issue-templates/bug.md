@@ -1,6 +1,6 @@
 # Bug report
 
-**Module / repo:** (e.g. gridpilot-core)
+**Module / package:** (e.g. packages/core)
 **Version / commit:**
 **What happened:**
 **What you expected:**

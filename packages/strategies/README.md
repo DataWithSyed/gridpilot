@@ -1,3 +1,5 @@
+> This package now lives in the **GridPilot umbrella**: [`packages/strategies`](https://github.com/DataWithSyed/gridpilot/tree/main/packages/strategies). Install the whole project from the repo root with `pip install -e ".[dev]"`.
+
 # gridpilot-strategies
 
 **Step 5** of [GridPilot](https://github.com/DataWithSyed/gridpilot) — strategy pack for paper trading.

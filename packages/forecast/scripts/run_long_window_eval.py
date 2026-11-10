@@ -16,17 +16,11 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 UMBRELLA = ROOT.parents[1]
-GP = UMBRELLA.parent
-for p in (
-    ROOT / "src",
-    UMBRELLA / "packages" / "backtest" / "src",
-    GP / "gridpilot-core" / "src",
-    GP / "gridpilot-strategies" / "src",
-    GP / "gridpilot-data" / "src",
-    GP / "gridpilot-risk" / "src",
-):
-    if p.exists() and str(p) not in sys.path:
-        sys.path.insert(0, str(p))
+GP = UMBRELLA  # in-repo packages/ (legacy name kept for cache fallbacks)
+import sys as _sys
+_sys.path.insert(0, str(UMBRELLA / "packages"))
+from _srcpaths import add_src_paths, default_cache
+add_src_paths(UMBRELLA)
 
 from gridpilot_backtest.metrics import block_bootstrap_mean_diff_ci, historical_cvar, max_drawdown
 from gridpilot_core.agent import PaperAgent

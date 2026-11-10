@@ -9,9 +9,9 @@ each delivery day.
 **Paper trading only.** No exchange order APIs. No real bids.
 
 ```bash
-# from umbrella repo root, with sibling checkouts next to it
+# from the umbrella repo root
 python -m pip install -e packages/live -e packages/forecast \
-  -e ../gridpilot-core -e ../gridpilot-strategies
+  # or from the repo root: pip install -e ".[dev]"
 python packages/live/scripts/run_live_pilot.py
 ```
 

@@ -1,6 +1,6 @@
 # Cross-cutting assumptions
 
-See also `gridpilot-core/docs/assumptions.md` for runtime defaults.
+See also `packages/core/docs/assumptions.md` for runtime defaults.
 
 | ID | Item | Note |
 |---|---|---|

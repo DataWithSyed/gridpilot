@@ -11,20 +11,12 @@ def _setup_path() -> Path:
     here = Path(__file__).resolve()
     # packages/backtest/src/gridpilot_backtest/cli.py -> umbrella (= parents[4])
     umbrella = here.parents[4]
-    gp = umbrella.parent
-    root_bt = here.parents[2]
-    root_fc = umbrella / "packages" / "forecast"
-    for p in (
-        root_bt / "src",
-        root_fc / "src",
-        gp / "gridpilot-core" / "src",
-        gp / "gridpilot-strategies" / "src",
-        gp / "gridpilot-data" / "src",
-        gp / "gridpilot-risk" / "src",
-    ):
-        if p.exists() and str(p) not in sys.path:
-            sys.path.insert(0, str(p))
-    return gp
+    sys.path.insert(0, str(umbrella / "packages"))
+    from _srcpaths import add_src_paths, default_cache
+
+    add_src_paths(umbrella)
+    _setup_path.default_cache = default_cache  # type: ignore[attr-defined]
+    return umbrella
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -56,10 +48,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--skip-ml", action="store_true", help="Skip ML strategies (faster / less RAM)")
     args = ap.parse_args(argv)
 
-    cache = args.cache or (gp / "gridpilot-core" / "data" / "cache")
-    if not cache.exists():
-        alt = gp / "gridpilot-data" / "data" / "cache"
-        cache = alt if alt.exists() else cache
+    from _srcpaths import default_cache
+
+    cache = args.cache or default_cache(gp)
     prices = load_prices(args.start, args.end, cache)
 
     strategies = {

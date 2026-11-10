@@ -1,3 +1,5 @@
+> This package now lives in the **GridPilot umbrella**: [`packages/core`](https://github.com/DataWithSyed/gridpilot/tree/main/packages/core). Install the whole project from the repo root with `pip install -e ".[dev]"`.
+
 # gridpilot-core
 
 **Step 1** of [GridPilot](https://github.com/DataWithSyed/gridpilot) — the paper-trading agent runtime.

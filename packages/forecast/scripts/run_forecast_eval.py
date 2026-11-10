@@ -14,16 +14,11 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 UMBRELLA = ROOT.parents[1]
-GP = UMBRELLA.parent
-for p in (
-    ROOT / "src",
-    GP / "gridpilot-core" / "src",
-    GP / "gridpilot-strategies" / "src",
-    GP / "gridpilot-data" / "src",
-    GP / "gridpilot-risk" / "src",
-):
-    if p.exists() and str(p) not in sys.path:
-        sys.path.insert(0, str(p))
+GP = UMBRELLA  # in-repo packages/ (legacy name kept for cache fallbacks)
+import sys as _sys
+_sys.path.insert(0, str(UMBRELLA / "packages"))
+from _srcpaths import add_src_paths, default_cache
+add_src_paths(UMBRELLA)
 
 from gridpilot_core.agent import PaperAgent
 from gridpilot_core.battery import BatteryConfig
@@ -115,9 +110,9 @@ def run_agent(name, strat, prices, batt, risk):
 
 def main():
     start, end = "2026-08-01", "2026-10-15"
-    cache = GP / "gridpilot-core" / "data" / "cache"
+    cache = UMBRELLA / "packages" / "core" / "data" / "cache"
     if not cache.exists():
-        cache = GP / "gridpilot-data" / "data" / "cache"
+        cache = UMBRELLA / "packages" / "data" / "data" / "cache"
     prices = load_prices(start, end, cache)
     mae_tbl = forecast_mae_table(prices)
     batt = BatteryConfig(power_mw=1.0, energy_mwh=2.0)
