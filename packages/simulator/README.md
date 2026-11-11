@@ -11,3 +11,8 @@ gridpilot-sim dashboard
 ```
 
 See [`docs/SIMULATOR.md`](../../docs/SIMULATOR.md) for the buyer-facing summary and honest limitations.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

@@ -72,8 +72,13 @@ docs/limitations.md
 
 ## Limitations
 
-See [`docs/limitations.md`](docs/limitations.md). Short version: paper trading only; hourly DA; oracle strategy is not tradeable; P50/P90 are empirical daily-PnL percentiles, not a full VaR engine.
+See [`docs/limitations.md`](../../docs/limitations.md). Short version: paper trading only; hourly DA; oracle strategy is not tradeable; P50/P90 are empirical daily-PnL percentiles, not a full VaR engine.
 
 ## Licence
 
 MIT for code. Upstream data keep their own licences — always attribute.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

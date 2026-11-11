@@ -19,3 +19,8 @@ Committed summary: `results/live/` at the umbrella root. Event streams under
 `packages/live/results/` are gitignored.
 
 The pilot fee toggle (`LivePilotConfig.apply_costs`, default on) reports gross mid-price P&L and net-of-ASSUMED-cost P&L. When on, ML/PF schedules use the cost-aware LP. Paper trading only.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

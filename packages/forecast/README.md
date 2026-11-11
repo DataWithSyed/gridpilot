@@ -46,3 +46,8 @@ MIT. Market data: Energy-Charts / SMARD — CC BY 4.0.
 ## Cost-aware LP and tight Mondrian
 
 `cost_aware_lp.py` re-optimises daily dispatch under `ExecutionCosts`. Tight Mondrian is selected with `calibrator_kind='mondrian'` and `mondrian_mode='tight'`. Eval: `scripts/run_cost_aware_tight_mondrian.py`.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

@@ -11,3 +11,8 @@ streamlit run packages/dashboard/app.py
 ```
 
 Paper trading only.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

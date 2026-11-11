@@ -41,8 +41,13 @@ python scripts/walk_forward_eval.py --start 2026-08-01 --end 2026-10-15
 
 ## Limitations
 
-See [`docs/limitations.md`](docs/limitations.md). Short version: climatology forecast, warm-up days, no fees/slippage, paper only.
+See [`docs/limitations.md`](../../docs/limitations.md). Short version: climatology forecast, warm-up days, no fees/slippage, paper only.
 
 ## Licence
 
 MIT. Upstream prices: Energy-Charts / SMARD — CC BY 4.0.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

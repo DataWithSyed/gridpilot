@@ -49,8 +49,13 @@ python scripts/run_bootstrap_demo.py
 
 ## Limitations
 
-See [`docs/limitations.md`](docs/limitations.md).
+See [`docs/limitations.md`](../../docs/limitations.md).
 
 ## Licence
 
 MIT.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

@@ -1,290 +1,172 @@
 # GridPilot
 
-**Open paper-trading agent stack for electricity markets** — live/near-live public data, pluggable charge/discharge strategies, risk limits, probabilistic P10/P50/P90 outcome tracking, ML forecasting, walk-forward backtests, and a Streamlit dashboard.
+**Open paper-trading agent stack for electricity markets.** One public repository ([DataWithSyed/gridpilot](https://github.com/DataWithSyed/gridpilot)): public data in, a forecast, a risk-limited schedule or bid curve, and paper evaluation out.
 
-GridPilot is **one public GitHub project** ([this repo](https://github.com/DataWithSyed/gridpilot)). The former sibling repos (`gridpilot-core`, `gridpilot-data`, `gridpilot-risk`, `gridpilot-strategies`) now live under `packages/` in this repository.
+Version **0.4.0**. Documentation index: [`docs/index.md`](docs/index.md).
 
-> **Paper trading only.** Nothing in GridPilot places real orders on any power exchange or broker. There is no live execution path in the public code.
+> **Paper trading only.** GridPilot does **not** connect to a power exchange or broker, does **not** place or sign real orders, and does **not** claim real-money performance. The “live” package is a near-live **paper** pilot on public Energy-Charts prices. Star counts are not a project goal in these docs.
 
-## Why this exists
+## What it is (and is not)
 
-Battery storage and flexible demand need an **agent loop**: observe the market → forecast → decide under risk limits → simulate fills → learn. Prior single-repo studies under [@DataWithSyed](https://github.com/DataWithSyed) already cover forecasting, reserve stacking, LCOS, and lab data. GridPilot **links** those ideas into a coherent agent architecture instead of duplicating them.
+**It is** a research stack for a German DE-LU day-ahead paper battery (illustrative **1 MW / 2 MWh**): Energy-Charts / SMARD prices and day-ahead load/solar/wind forecasts, walk-forward P10/P50/P90 forecasting, cost-aware and CVaR dispatch LPs, SDAC-style bid curves, a labelled post-DA re-optimisation layer, walk-forward backtests, a tick simulator, and a Streamlit view.
+
+**It is not** an execution venue, an EMS product with live order routing, or a measured intraday / official reBAP study. Published coverage is still **below 80%**. Degradation is still an **ASSUMED 5 €/MWh**. Gate-closure bid curves **under-cycled** versus a locked schedule. Those limits are documented, not papered over.
 
 ## Architecture
 
+Public data flow through the packages in this order: **data → forecast → risk → strategies → backtest / live / simulator → dashboard**. `packages/core` is the shared paper runtime (battery, strategy interface, limits).
+
 ```mermaid
-flowchart TB
-  subgraph repo ["DataWithSyed/gridpilot"]
-    subgraph data ["packages/data"]
-      EC[Energy-Charts DE-LU DA<br/>CC BY 4.0]
-      ENTSO[ENTSO-E optional<br/>token via env]
-      Replay[Replay / cache]
-    end
-
-    subgraph core ["packages/core"]
-      Batt[Battery SoC / η / cycles]
-      StratIF[Strategy interface]
-      RiskCore[Risk limits + kill switch]
-      Paper[Paper-trading loop]
-      Pctl[Rolling P50 / P90 PnL]
-      Log[Event log]
-    end
-
-    subgraph brain [Decision modules]
-      FC["packages/forecast<br/>LEAR+GBM + TSO DA features<br/>+ Mondrian CQR"]
-      STR[packages/strategies]
-      RSK[packages/risk]
-    end
-
-    subgraph eval [Evaluation]
-      BT["packages/backtest<br/>costs + sourced fees + equity"]
-      UI[packages/dashboard]
-      LV[packages/live]
-    end
+flowchart LR
+  subgraph ingest ["packages/data"]
+    EC[Energy-Charts DE-LU DA<br/>CC BY 4.0]
+    RP[Replay / cache]
   end
 
-  EC --> Replay
-  ENTSO --> Replay
-  Replay --> Paper
-  Batt --> Paper
-  StratIF --> Paper
-  RiskCore --> Paper
-  Paper --> Log
-  Paper --> Pctl
-  FC --> StratIF
-  STR --> StratIF
-  RSK --> RiskCore
-  Paper --> BT
-  BT --> UI
-  Pctl --> UI
-  LV --> UI
+  FC[packages/forecast]
+  RK[packages/risk]
+  ST[packages/strategies]
+
+  subgraph runtime ["packages/core"]
+    PA[PaperAgent]
+  end
+
+  BT[packages/backtest]
+  LV[packages/live]
+  SIM[packages/simulator]
+  UI[packages/dashboard]
+
+  EC --> RP --> FC
+  RP --> ST
+  FC --> PA
+  ST --> PA
+  RK --> PA
+  PA --> BT --> UI
+  PA --> LV --> UI
+  PA --> SIM --> UI
 ```
 
-## Roadmap
+Day-ahead decisions for delivery day **D** are locked at **12:00 Europe/Berlin on D-1**. Forecasts do not see realised D prices. Perfect foresight is an oracle baseline only. Design detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), methods: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
-- [x] **Umbrella** (`gridpilot`): architecture, methods, assumptions, contributing *(this repo)*
-- [x] **Core runtime** (`packages/core`): battery · strategies · paper loop · Energy-Charts replay · risk limits · P50/P90
-- [x] **Data adapters** (`packages/data`): Energy-Charts live/near-live + replay + optional ENTSO-E env-token adapter
-- [x] **Forecasting** (`packages/forecast`): LEAR-lite + quantile GBM + **day-ahead load/solar/wind** features + rolling / Mondrian / **tight Mondrian** CQR; **cost-aware LP**; **gate-closure bid curves** (did not beat locked schedule on the 12-month window)
-- [x] **Risk engine** (`packages/risk`): block-bootstrap scenario PnL, VaR / CVaR, limit hooks
-- [x] **Strategy pack** (`packages/strategies`): forecast-driven + risk-aware LP (climatology baseline)
-- [x] **Backtest harness** (`packages/backtest`): walk-forward table, fees/slippage/degradation cost layer, **cost-aware re-optimisation**, equity + coverage figures, cost-sensitivity sweep
-- [x] **Dashboard** (`packages/dashboard`): Streamlit ops view (testable package + thin `app.py`)
-- [x] **Near-live paper pilot** (`packages/live` + `results/live`): latest DE-LU fetch, ex-ante 14-day paper trade, **gross and net-of-cost P&L**, forecast accuracy, next-day schedule
+## Packages
 
-## Repo layout
+Install once from the repo root. Entry points below assume `pip install -e ".[dev,ui]"`.
 
-```
-gridpilot/
-  pyproject.toml         # one root install: pip install -e ".[dev,ui]"
-  packages/core/         # battery, paper loop, risk limits, P50/P90
-  packages/data/         # Energy-Charts adapters, optional ENTSO-E
-  packages/risk/         # block-bootstrap VaR/CVaR, kill-switch hooks
-  packages/strategies/   # climatology forecast-driven + risk-aware LP
-  packages/forecast/     # LEAR-lite + GBM, CQR, cost-aware LP, gate-closure bids
-  packages/backtest/     # comparison harness, sourced fees, equity
-  packages/dashboard/    # Streamlit UI
-  packages/live/         # near-live paper pilot + accuracy check
-  packages/simulator/    # real-time paper replay, dashboard, demo report
-  results/live/          # committed live-pilot summaries
-  docs/                  # methods, assumptions, fees, limitations
-```
+| Package | Purpose | Entry points / CLI |
+| --- | --- | --- |
+| [`packages/data`](packages/data/README.md) | Energy-Charts, replay, optional ENTSO-E adapters | Library (`EnergyChartsAdapter`, `ReplayAdapter`) |
+| [`packages/forecast`](packages/forecast/README.md) | LEAR-lite + quantile GBM, CQR, cost-aware / CVaR LPs, bid curves, ID layer | Scripts under `packages/forecast/scripts/` (e.g. `run_cost_aware_tight_mondrian.py`) |
+| [`packages/risk`](packages/risk/README.md) | Block-bootstrap scenario cash, historical VaR / CVaR, limit hooks | Library |
+| [`packages/strategies`](packages/strategies/README.md) | Climatology forecast-driven and risk-aware LPs | Library |
+| [`packages/core`](packages/core/README.md) | Battery physics, `Strategy` protocol, `PaperAgent`, cycle / drawdown limits | Library |
+| [`packages/backtest`](packages/backtest/README.md) | Walk-forward harness, sourced fees, equity figures | `gridpilot-backtest` |
+| [`packages/live`](packages/live/README.md) | Near-live ex-ante paper pilot and next-day schedule | `gridpilot-live-pilot` · `packages/live/scripts/run_live_pilot.py` |
+| [`packages/simulator`](packages/simulator/README.md) | Tick-by-tick paper replay, Streamlit, HTML/PNG report, Docker | `gridpilot-sim run` · `gridpilot-sim dashboard` · `gridpilot-sim report` |
+| [`packages/dashboard`](packages/dashboard/README.md) | Streamlit ops view of backtest / calibration outputs | `streamlit run packages/dashboard/app.py` |
 
-## Measured results so far (real runs)
+## Consolidated results (paper only)
 
-### Primary window: **2025-11-01 → 2026-10-30** (~12 months) — **net of ASSUMED costs**
+Figures are copied from committed result files. Full tables, hour counts, and caveats: [`docs/RESULTS.md`](docs/RESULTS.md). Primary historical window: **2025-11-01 → 2026-10-30**, DE-LU day-ahead, illustrative 1 MW / 2 MWh BESS. Some later experiments on that calendar use **8,736** h rather than **8,735** h and are **not** a re-run of the headline ML path.
 
-DE-LU day-ahead prices + DE day-ahead load/solar/wind forecasts via Energy-Charts (CC BY 4.0), hourly means, illustrative **1 MW / 2 MWh** BESS. Paper trading only. ML lookback **90** days, refit every **7** days (ASSUMED).
+| Result | Window | Headline (paper cash) | Source |
+| --- | --- | --- | --- |
+| **Cost-aware ML vs threshold vs perfect foresight** (sourced fees) | 2025-11-01 → 2026-10-30, **8,735** h | Threshold **32,367** €; cost-aware ML **65,473** € (**79.6%** of cost-aware PF **82,271** €); Δ vs threshold **+90.9 [76.6, 104.7]** €/day | [`sourced_fees_backtest.json`](packages/forecast/results/sourced_fees_backtest.json) |
+| **Live pilot accuracy** | **2026-10-28 → 2026-11-10**, 14 d / 336 h (re-run **2026-11-10**) | MAE **39.20** vs naive **75.68** €/MWh; coverage **52.4%**; ML net **3,351** € (**87.0%** of PF net **3,852**) | [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md) |
+| **Bid curves (negative result)** | Same 12-month calendar, **8,736** h, same-fan comparison | Climatology lock **60,379** vs quantile bids **13,082** (€/day **−129.94 [−149.98, −107.28]**). Curves under-cycled. Not comparable to the 65,473 € path | [`GATE_CLOSURE_BIDDING.md`](packages/forecast/results/GATE_CLOSURE_BIDDING.md) |
+| **Intraday / imbalance — proxy-only** | Same climatology DA lock | Full ID close **83,394** € (**+23,015**; **+63.23 [52.36, 73.28]** €/day) under **PROXY_ID_EQ_DA**. No public ID or official reBAP series | [`INTRADAY_IMBALANCE.md`](packages/forecast/results/INTRADAY_IMBALANCE.md) |
+| **CVaR frontier** | Same calendar, **8,736** h, last 60 causal paths | λ = 0: **69,622** / CVaR **18.56**; λ = 2: **66,718** / **6.34**; **λ = 5 did not beat λ = 2** (CVaR **6.68**). Not a re-run of 65,473 € | [`CVAR_FRONTIER.md`](packages/forecast/results/CVAR_FRONTIER.md) |
 
-**Base costs (ASSUMED, labelled in `docs/assumptions.md`):** trading fee **0.05** €/MWh · slippage **0.50** €/MWh · degradation **5** €/MWh throughput. Strategies are **not** re-optimised for fees (accounting layer on fills).
+On the same 8,735 h window, tight Mondrian lifted 80% coverage to **78.9%** (still short of 80%) but did **not** raise cost-aware ML cash versus rolling CQR (sourced: **65,312** vs **65,473** €). Cost-aware ML paid **€8,219** degradation versus **€25** fees under the sourced preset.
 
-| Metric | Value |
-|---|---|
-| Hours / DA mean | **8,735** h · **110.88** €/MWh (min −499 · max 697.31 · **5.17%** negative) |
-| Forecast MAE | Ensemble+fundamentals **16.26** vs naive **33.98** €/MWh |
-| 80% coverage | Raw **50.0%** → rolling CQR **72.2%** → **Mondrian CQR 78.2%** (nominal 80%; still slightly short) |
-| Reliability (Mondrian) | P10 **8.2%** · P50 **46.5%** · P90 **86.4%** (rolling CQR was 8.8 / 40.7 / 81.0) |
+Equity and coverage plots: [`packages/backtest/figures/equity_curve_net.png`](packages/backtest/figures/equity_curve_net.png), [`packages/backtest/figures/coverage_calibration.png`](packages/backtest/figures/coverage_calibration.png).
 
-| Strategy (net of base costs) | Final cash € | Capture of PF | Daily PnL P10 / P50 / P90 € | CVaR₅% loss € | Max DD € | Δ€/day vs thr. (90% CI) |
-|---|---:|---:|---|---:|---:|---|
-| Threshold | 31,944 | 44.2% | −61.74 / 76.78 / 247.22 | 175.43 | 309 | — |
-| ForecastDrivenLP (climatology) | 33,932 | 47.0% | −54.25 / 51.62 / 300.21 | 178.83 | 434 | +5.5 [−5.5, 15.9] *(CI crosses 0)* |
-| RiskAwareForecastLP (climatology) | 26,860 | 37.2% | −5.59 / 26.01 / 238.50 | 114.29 | 455 | −14.0 [−25.0, −4.5] |
-| **MLForecastDrivenLP** (fund+rolling CQR) | **57,153** | **79.2%** | 0.00 / 135.30 / 362.07 | 79.79 | 466 | **+69.3 [53.3, 82.1]** |
-| ML MondrianForecastDrivenLP | 55,501 | 76.9% | −5.48 / 125.88 / 363.69 | 81.99 | 460 | +64.7 [49.2, 79.0] |
-| MLRiskAwareForecastLP | 45,566 | 63.1% | 0.00 / 93.47 / 292.63 | **43.06** | 455 | +37.4 [25.1, 48.1] |
-| Perfect foresight (oracle) | 72,192 | 100% | 26.91 / 177.22 / 396.57 | 9.23 | 495 | +110.6 [91.7, 124.9] |
-
-**Gross (zero fee/slip/deg) for honesty:** threshold **36,334** € · ML **68,822** € · Mondrian-ML **67,508** € · PF **85,231** €. Prior README cash (~65,497 ML) matched the fee=0 / slip=0 / deg=5 case (± rounding), not a zero-cost world.
-
-**Cost sensitivity (ML vs threshold final cash €):**
-
-| Scenario | fee / slip / deg | Threshold | ML | ML / thr |
-|---|---|---:|---:|---:|
-| zero | 0 / 0 / 0 | 36,334 | 68,822 | **1.89×** |
-| fee_deg | 0.05 / 0 / 5 | 32,340 | 58,204 | **1.80×** |
-| **base** | **0.05 / 0.50 / 5** | **31,944** | **57,153** | **1.79×** |
-| stress | 0.10 / 1.0 / 10 | 27,555 | 45,483 | **1.65×** |
-
-Honest takeaway: **the ML edge survives ASSUMED fees, slippage and degradation** — even under the stress case ML stays ~1.65× threshold, and the base 90% block-bootstrap CI on Δ€/day vs threshold **excludes zero**. Mondrian/regime-conditional CQR lifts 80% coverage **72.2 → 78.2%** and moves P50 reliability **40.7 → 46.5%** (closer to nominal 50%), but still short of exact 80%/50%. Mondrian-calibrated ML cash is slightly **below** rolling-CQR ML on this window (55.5k vs 57.2k net) — calibration quality ≠ automatic PnL gain. Equity curve: [`packages/backtest/figures/equity_curve_net.png`](packages/backtest/figures/equity_curve_net.png). Coverage plot: [`packages/backtest/figures/coverage_calibration.png`](packages/backtest/figures/coverage_calibration.png). Optional FCR overlay remains a **link only** to [`de-bess-reserve-revenue-stacking`](https://github.com/DataWithSyed/de-bess-reserve-revenue-stacking) (not co-optimised here). Still **paper trading only**.
-
-### Cost-aware LP + tight Mondrian (same window, 2026-11-10)
-
-Strategies now **re-optimise** under the same base ASSUMED costs (fee 0.05 / slip 0.50 / deg 5 €/MWh) instead of applying costs only after fills. Tight Mondrian labels are hour-of-day × hourly residual-load tercile × 7-vs-60-day hour-of-day volatility, with parent-regime fallback when a cell is thin.
-
-| Metric | Value |
-|---|---|
-| 80% coverage | Raw **50.0%** → rolling CQR **72.2%** → residual-load Mondrian **76.6%** (this re-run) / **78.2%** (prior published) → **tight Mondrian 78.9%** (nominal 80%; still slightly short) |
-| Reliability (tight Mondrian) | P10 **7.8%** · P50 **46.8%** · P90 **86.8%** |
-| Forecast MAE | Tight-CQR P50 **16.07** vs rolling **16.26** vs naive **33.98** €/MWh |
-
-| Strategy (net of base costs) | Final cash € | Capture of cost-aware PF | Throughput MWh | CVaR₅% loss € | Δ€/day vs threshold (90% CI) | Δ€/day vs non-reopt ML (90% CI) |
-|---|---:|---:|---:|---:|---|---|
-| Threshold (unchanged path) | 31,944 | 39.3% | 791 | 175.43 | — | −69.3 [−82.1, −53.3] |
-| ML, accounting-only (not re-optimised) | 57,153 | 70.3% | 2,103 | 79.79 | +69.3 [53.3, 82.1] | — |
-| **ML cost-aware LP** (rolling CQR) | **64,646** | **79.5%** | 1,612 | **11.11** | **+89.8 [75.5, 103.7]** | **+20.6 [14.6, 27.6]** |
-| ML cost-aware + tight Mondrian | 64,487 | 79.3% | 1,680 | 30.87 | +89.4 [75.5, 103.7] | +20.1 [14.1, 27.8] |
-| PF, accounting-only | 72,192 | 88.8% | 2,349 | 9.23 | +110.6 [91.7, 124.9] | +41.3 [33.7, 47.3] |
-| **Cost-aware PF** (oracle) | **81,314** | **100%** | 1,947 | — | +135.6 [117.6, 151.0] | +66.4 [57.4, 74.6] |
-
-Honest takeaway: **re-optimising the LP for costs is a real gain**. Cost-aware ML earns **€7,493** more net than the previous accounting-only ML (57,153 → 64,646) — about **+20.6 €/day**, and the 90% CI excludes zero — mainly by skipping thin-spread cycles (throughput 2,103 → 1,612 MWh) and cutting CVaR₅% 79.8 → 11.1. Versus threshold the edge widens to **+89.8 [75.5, 103.7] €/day** (2.02× cash). The cost-aware oracle is also higher (81,314 vs 72,192) for the same reason, so capture is measured against that tighter bound (**79.5%**). Tight Mondrian **does improve coverage** (78.2% → **78.9%**, still short of 80%) and trims MAE slightly (16.26 → 16.07) but **does not improve P&L** versus rolling cost-aware ML (64,487 vs 64,646; CIs overlap). Calibration quality still ≠ automatic trading gain.
-
-### Sourced market fees (same window, retrieval 2026-11-10 Asia/Karachi)
-
-Public tariff documents were opened on **2026-11-10**. The **`sourced`** DA preset is ECC Lux day-ahead **clearing only** at **0.015 €/MWh** ([ECC Price List 085b, 2 Nov 2026](https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf)), DA slippage **0** (SDAC single clearing price), and degradation **still ASSUMED at 5 €/MWh**. The current EPEX SPOT trading fee is **not** in the public [Fees page](https://www.epexspot.com/en/fees) or [Price List Guide](https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf), so it is omitted — the 0.015 €/MWh fee is a **lower bound** on total exchange costs. Full sourced-vs-assumed table, fixed ECC membership fees, Nord Pool comparator, EnWG § 118(6) grid exemption, and reBAP notes: [`docs/fees.md`](docs/fees.md).
-
-Cost-aware strategies were **re-run** under this preset (not just repriced). Accounting-only baselines reuse the earlier gross dumps with sourced accounting.
-
-| Strategy (net of sourced costs) | Final cash € | Capture of cost-aware PF | Throughput MWh | CVaR₅% loss € | Δ€/day vs threshold (90% CI) | Δ€/day vs non-reopt ML (90% CI) |
-|---|---:|---:|---:|---:|---|---|
-| Threshold (unchanged path) | 32,367 | 39.3% | 791 | 174.25 | — | −71.2 [−84.0, −55.3] |
-| ML, accounting-only (not re-optimised) | 58,277 | 70.8% | 2,103 | 75.88 | +71.2 [55.3, 84.0] | — |
-| **ML cost-aware LP** (rolling CQR) | **65,473** | **79.6%** | 1,644 | **13.07** | **+90.9 [76.6, 104.7]** | **+19.8 [13.8, 26.7]** |
-| ML cost-aware + tight Mondrian | 65,312 | 79.4% | 1,706 | 28.75 | +90.5 [76.5, 104.6] | +19.3 [13.3, 26.7] |
-| PF, accounting-only | 73,449 | 89.3% | 2,349 | 5.48 | +112.9 [93.9, 127.1] | +41.7 [34.1, 47.6] |
-| **Cost-aware PF** (oracle) | **82,271** | **100%** | 1,972 | — | +137.1 [119.0, 152.7] | +65.9 [57.0, 73.9] |
-
-Versus the earlier **assumed** base costs (0.05 / 0.50 / 5), sourced net cash is slightly higher (cost-aware ML **65,473** vs **64,646**; threshold **32,367** vs **31,944**; cost-aware PF **82,271** vs **81,314**) because the variable fee is lower and DA slippage is 0. Almost all of the remaining gap versus gross is still the **ASSUMED 5 €/MWh degradation** (cost-aware ML paid **€8,219** degradation vs **€25** fees). The ML edge vs threshold **survives** and the 90% CI still excludes zero. This is **paper trading only** and is not a real-money result. The sourced fee understates all-in exchange costs if a current EPEX trading fee and annual membership apply.
-
-### Gate-closure bid curves vs locked schedule (same window, 2026-11-10 Asia/Karachi)
-
-P10/P50/P90 fans are turned into SDAC-style price-quantity curves at **12:00 Europe/Berlin on D-1** and cleared against the realised DE-LU price, with partial acceptance at a price tie (ASSUMED 50% of the marginal step) and when SoC or power caps the fill. The comparison is against the **locked cost-aware P50 schedule** (price-taking volume) on the **same** fan. Sourced fee preset. Design: [`docs/BIDDING.md`](docs/BIDDING.md). Results: [`packages/forecast/results/GATE_CLOSURE_BIDDING.md`](packages/forecast/results/GATE_CLOSURE_BIDDING.md). Paper trading only.
-
-These schedule totals are **not** a re-run of the published sourced cost-aware ML **65,473** EUR path (fundamentals + PaperAgent 2-cycle/day clip, 411 cycles). The ML fan here is price-only and unclipped (479.4 cycles). Compare bid-vs-schedule deltas only.
-
-| Forecast | Locked schedule € | Quantile bids € | Anchored bids € | Bids − schedule €/day (90% CI) |
-|---|---:|---:|---:|---|
-| 90-day hour-of-day climatology | 60,379 | 13,082 | 17,740 | quantile **−129.94 [−149.98, −107.28]**; anchored **−117.14 [−139.04, −94.56]** |
-| Walk-forward ML + tight Mondrian (price-only) | 75,102 | 3,566 | 22,867 | quantile **−196.53 [−222.03, −171.41]**; anchored **−143.50 [−163.33, −122.56]** |
-
-**Honest takeaway: bid curves did not improve on the locked schedule.** Every 90% CI excludes zero. The curves under-cycle (151–188 vs 458–479 cycles) because they have no explicit water value; they skip planned cycles when the realised price misses the steps or SoC is already in the wrong place. Anchored curves beat standalone quantile curves under ML but still trail the locked LP. The bidding code is kept as infrastructure for later water-value / intraday / imbalance work. Window length here is **8,736** h (364 days; DST cancel).
-
-### Post-DA re-optimisation and imbalance proxies (same window, 2026-11-10 Asia/Karachi)
-
-Energy-Charts **does not** publish public intraday or ID-index prices (verified 2026-11-10: `/price` is day-ahead only; `market=intraday` is ignored). Official **reBAP** is not fetchable without Netztransparenz Extranet OAuth client credentials (API docs v1.14). The published run therefore uses labelled proxies: **PROXY_ID_EQ_DA** and **PROXY_REBAP_EQ_DA** (both legs equal the realised DA price). Design: [`docs/INTRADAY.md`](docs/INTRADAY.md). Results: [`packages/forecast/results/INTRADAY_IMBALANCE.md`](packages/forecast/results/INTRADAY_IMBALANCE.md). Paper trading only. DA baseline is the same climatology cost-aware lock as the bidding study (60,379 EUR).
-
-| Policy | Net EUR | Δ vs locked DA | Δ€/day (90% CI) |
-|---|---:|---:|---|
-| Locked DA schedule (climatology P50) | 60,379 | — | — |
-| Post-DA re-opt, full ID close | **83,394** | **+23,015** | **+63.23 [52.36, 73.28]** |
-| Same, ASSUMED 20% unfilled at reBAP proxy | 83,408 | +23,029 | +63.27 [52.40, 73.32] |
-
-**Honest takeaway: under these proxies, reshaping after DA prices are published is a real gain** (CI excludes zero). That is the value of seeing the DA result and trading the delta at DA, minus ECC ID clearing 0.035 €/MWh — **not** a measured ID–DA spread. The 20% unfilled case is €14 higher only because it avoids those ID fees (reBAP proxy = DA); it is **not** an official reBAP test. True ID or reBAP series could change the sign or size of the leftover term.
-
-### Cost-aware CVaR frontier (same window, 2026-11-10 Asia/Karachi)
-
-A here-and-now daily LP maximises `E[cash] − λ CVaR₅%(loss)` under the sourced fee preset, with the last 60 causal daily price paths as scenarios. Design: [`docs/CVAR.md`](docs/CVAR.md). Results: [`packages/forecast/results/CVAR_FRONTIER.md`](packages/forecast/results/CVAR_FRONTIER.md). Paper trading only. Not a re-run of the published ML 65,473 EUR path.
-
-| λ | Net EUR | Mean €/day | OOS CVaR₅% loss € |
-|---:|---:|---:|---:|
-| 0 | 69,622 | 191.27 | 18.56 |
-| 1 | 67,864 | 186.44 | 9.09 |
-| 2 | 66,718 | 183.29 | 6.34 |
-| 5 | 63,743 | 175.12 | **6.68** |
-| 10 | 61,178 | 168.07 | **4.21** |
-
-**Honest takeaway:** λ=1–2 **improves** the risk/return trade-off (CVaR 18.56 → 9.09 / 6.34 for a 2–3k cash concession). **λ=5 does not improve OOS CVaR versus λ=2** (6.68 vs 6.34). λ=10 has the lowest CVaR at a larger cash cost.
-
-### Earlier short window (kept for continuity): 2026-08-01 → 2026-10-15
-
-Price-only ML on **1,824** h: threshold **9,993** € · climatology LP **14,145** € · ML **14,358** € · PF **25,228** € (ML **56.9%** of PF). That short sample understated the value of fundamentals.
-
-### Near-live paper pilot (re-run 2026-11-10 Asia/Karachi, sourced fee preset)
-
-Latest published Energy-Charts DE-LU day-ahead day is still **2026-11-10** (window **2026-10-28 → 2026-11-10**, 14 days / 336 h). Ex-ante P50 schedule, fills at realised DA. Paper trading only — **no real orders**. The fee toggle reports **gross** (mid-price, no fee/slip/deg) and **net** of the **sourced** preset (ECC DA clearing 0.015 €/MWh, slippage 0, degradation still ASSUMED 5 €/MWh); the net ML/PF schedules use the cost-aware LP.
-
-| Check | Result |
-|---|---|
-| Forecast MAE | ML+fund+CQR **39.20** vs naive **75.68** €/MWh |
-| Forecast RMSE | ML **46.89** vs naive **84.12** €/MWh |
-| P10–P90 coverage | **52.4%** (nominal 80%; short window, unchanged) |
-| ML gross / net cash | **3,816** / **3,351** € (capture **88.9%** / **87.0%** of PF) |
-| Threshold gross / net | 1,261 / 1,051 € |
-| PF gross / net | 4,293 / 3,852 € |
-| Next delivery day | **2026-11-11** (DA not yet published): forecast-only cost-aware schedule, 4h charge / 4h discharge / 16h hold, P50 mean **351.48** €/MWh |
-
-Versus the earlier **assumed**-cost pilot net (ML 3,301 / PF 3,806 / threshold 1,028), sourced net is slightly higher because the variable fee is lower and slippage is 0. Gross is unchanged. Coverage on this short, high-price window remains well below 80%. Details: [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md).
-
-### Module highlights
-
-| Module | Highlight |
-|---|---|
-| `packages/core` | Battery · paper loop · P50/P90 · kill switch |
-| `packages/data` | Energy-Charts adapters + optional ENTSO-E env token |
-| `packages/risk` | Block-bootstrap VaR/CVaR hooks |
-| `packages/strategies` | Climatology ForecastDrivenLP / RiskAwareForecastLP |
-| `packages/forecast` | Fundamentals + CQR; cost-aware LP; gate-closure bids; post-DA ID/imbalance proxies; long-window eval |
-| `packages/backtest` | Cost layer, **sourced fee catalog**, cost-aware comparison CSV, equity + coverage figures |
-| `packages/live` | Near-live paper pilot with gross/net fee toggle |
-| `packages/simulator` | Real-time paper replay, Streamlit dashboard, HTML/PNG report |
-| `packages/dashboard` | Streamlit: net table, calibration, bootstrap CIs, equity image |
-
-## Quick start
+## Quickstart
 
 ```bash
-git clone https://github.com/DataWithSyed/gridpilot.git
-cd gridpilot
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,ui]"
-
 pytest -q
-# rebuild fundamentals cache if needed (API rate-limited):
-# python packages/forecast/scripts/fetch_fundamentals.py --start 2025-11-01 --end 2026-10-30
-python packages/forecast/scripts/run_long_window_eval.py
-python packages/forecast/scripts/run_costs_mondrian_equity.py  # fees/slip/deg + Mondrian + equity
-python packages/forecast/scripts/run_cost_aware_tight_mondrian.py --costs sourced --skip-forecast
-python packages/forecast/scripts/run_gate_closure_bidding.py --forecast climatology --costs sourced
-python packages/forecast/scripts/run_intraday_imbalance.py --costs sourced
-python packages/forecast/scripts/run_cvar_frontier.py --costs sourced
-python packages/live/scripts/run_live_pilot.py --costs sourced  # near-live paper pilot (gross + net)
-python packages/dashboard/scripts/healthcheck.py
-streamlit run packages/dashboard/app.py
-gridpilot-sim run --policy cost_aware --scenario normal --speed 0 --seed 0  # paper replay
-gridpilot-sim dashboard
 ```
 
-## Related work
+Paper simulator (synthetic demo, seed 0; not the 12-month backtest):
 
-See [`docs/related-work.md`](docs/related-work.md). Highlights:
+```bash
+gridpilot-sim run --scenario normal --speed 0 --seed 0
+gridpilot-sim dashboard
+# or
+./packages/simulator/scripts/quickstart.sh
+```
 
-- [de-day-ahead-price-forecasting](https://github.com/DataWithSyed/de-day-ahead-price-forecasting)
-- [de-bess-reserve-revenue-stacking](https://github.com/DataWithSyed/de-bess-reserve-revenue-stacking)
-- [epm-data-pipeline](https://github.com/DataWithSyed/epm-data-pipeline) · [eu-power-market-lab](https://github.com/DataWithSyed/eu-power-market-lab)
-- [bess-lcos-montecarlo-irr](https://github.com/DataWithSyed/bess-lcos-montecarlo-irr)
+Policies on the simulator include `--policy cost_aware` (default), `quantile_bids`, `cvar`, and `id_reopt`. See [`docs/SIMULATOR.md`](docs/SIMULATOR.md).
 
-## Docs
+Docker (paper simulator + dashboard on port 8502):
 
-- [`docs/methods.md`](docs/methods.md) — literature anchors (DOIs)
-- [`docs/fees.md`](docs/fees.md) — sourced vs assumed market fees (retrieval 2026-11-10)
-- [`docs/SIMULATOR.md`](docs/SIMULATOR.md) — paper market simulator, how to run, limitations
-- [`docs/BIDDING.md`](docs/BIDDING.md) — SDAC-style gate-closure bid curves; honest negative vs locked schedule
-- [`docs/INTRADAY.md`](docs/INTRADAY.md) — post-DA re-opt and imbalance; Energy-Charts has no public ID series; reBAP not fetchable without OAuth
-- [`docs/CVAR.md`](docs/CVAR.md) — cost-aware CVaR LP and return-vs-CVaR frontier under sourced fees
-- [`docs/assumptions.md`](docs/assumptions.md) — labelled ASSUMED defaults
-- [`docs/limitations.md`](docs/limitations.md) — honest scope limits
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to help
-- [`docs/issue-templates/`](docs/issue-templates/) — bug / feature templates
+```bash
+docker build -t gridpilot-sim -f packages/simulator/Dockerfile .
+docker run --rm -p 8502:8502 gridpilot-sim
+```
+
+Other CLIs after the same install: `gridpilot-backtest`, `gridpilot-live-pilot` (or `python packages/live/scripts/run_live_pilot.py`). Heavy 12-month walk-forwards are optional; prefer the committed files linked above when you only need the published numbers.
+
+## Data sources and licences
+
+- **Prices and day-ahead load / solar / wind forecasts:** [Energy-Charts](https://www.energy-charts.info/) / SMARD (Bundesnetzagentur, published via Fraunhofer ISE). Licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Always attribute.
+- **Optional ENTSO-E:** `EntsoeAdapter` reads `ENTSOE_API_TOKEN` from the environment only. Never commit a token.
+- **Code and documentation:** MIT (see [`LICENSE`](LICENSE)). Upstream market data keep their own licences.
+
+## Sourced fee table (retrieval 2026-11-10, Asia/Karachi)
+
+Default paper preset: `get_cost_preset("sourced")`. Full citations and items that were **not found**: [`docs/fees.md`](docs/fees.md).
+
+| Item | Status | Figure | Source (retrieved 2026-11-10) |
+| --- | --- | --- | --- |
+| ECC Lux DA spot **clearing** | Sourced | **0.015 €/MWh** | [ECC Price List 085b, 2 Nov 2026](https://www.ecc.de/fileadmin/ECC/Downloads/About_ECC_AG/Rules/Price_List/Current_Price_List/20261102_ECC_Price_List_085b.pdf) §4.1 |
+| DA slippage | Sourced (market design) | **0 €/MWh** | SDAC single clearing price per MTU |
+| Battery degradation | **ASSUMED** | **5 €/MWh** throughput | No public €/MWh wear tariff; see fees.md |
+| EPEX SPOT DA **trading** fee | **Not found** in current public docs | omitted (lower bound) | [EPEX Fees](https://www.epexspot.com/en/fees), [Price List Guide](https://www.epexspot.com/sites/default/files/download_center_files/New%20Price%20List%20Guide.pdf) |
+| ECC ID / SIDC IDA clearing | Sourced, used in the ID layer only | 0.035 €/MWh | Same ECC 085b §4.1 |
+| Grid access on stored energy | Sourced, conditional | **0 €/MWh** if eligible | [EnWG § 118(6)](https://www.gesetze-im-internet.de/enwg_2005/__118.html) |
+| Official reBAP | Not applied | no series in the published runs | Netztransparenz OAuth; not fetchable |
+| Nord Pool DA trading + clearing | Sourced **comparator only** (not in the preset) | 0.055 €/MWh | [Nord Pool Fee Schedule 2026](https://www.nordpoolgroup.com/4a7ad8/globalassets/trading-and-services/nord-pool-fee-schedule-2026-nordic-and-baltic-market.pdf) (Nordic/Baltic PDF; not used as EPEX DE-LU) |
+
+The sourced variable fee is **ECC clearing only**. Real all-in exchange costs may be higher once a current EPEX trading fee and annual membership are included. This is not a quote from EPEX, ECC, or a TSO.
+
+## Limitations and roadmap
+
+**Limitations** (see also [`docs/limitations.md`](docs/limitations.md)):
+
+- Paper trading only — no exchange connectivity, no real orders, no real-money claims.
+- Nominal 80% forecast coverage is still **below 80%** (tight Mondrian **78.9%** on the 12-month window; live pilot **52.4%**).
+- **No public intraday or official reBAP data** in the published runs; the ID result is **proxy-only**.
+- Degradation stays an **ASSUMED 5 €/MWh** and dominates the cost line.
+- Gate-closure bid curves **under-cycled** and lost money versus the locked schedule (CIs exclude 0).
+- Sourced DA fee omits the unpublished current EPEX trading fee (lower bound).
+- Bid-curve, ID, and CVaR cash are not substitutes for the published cost-aware ML **65,473 €** path.
+- On the CVaR frontier, **λ = 5 did not** improve out-of-sample CVaR versus λ = 2.
+
+**Roadmap** (honest, not a promise):
+
+- [ ] Public ID-index or official reBAP series, if and when they can be fetched without inventing a proxy.
+- [ ] Calibration work that actually reaches 80% coverage — and a check of whether that changes paper profit (it has not so far).
+- [ ] Bid-curve designs that do not systematically under-cycle, or a clear decision to drop the approach.
+- [ ] A sourced (not assumed) degradation or wear model if a defensible public figure appears.
+- [ ] Current EPEX DE-LU trading fee, if it is published.
+- [x] Umbrella monorepo, core runtime, data, forecast, risk, strategies, backtest, dashboard, live paper pilot, simulator.
+- [x] Cost-aware LP, sourced fee catalog, gate-closure bids (negative), ID proxies, CVaR frontier, simulator hooks.
+
+## Further documentation
+
+| Page | Contents |
+| --- | --- |
+| [`docs/index.md`](docs/index.md) | Full docs index |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Data flow and key classes |
+| [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Forecast, LPs, SDAC timing, bootstrap CIs |
+| [`docs/RESULTS.md`](docs/RESULTS.md) | Complete result tables and source files |
+| [`docs/fees.md`](docs/fees.md) | Sourced vs assumed costs |
+| [`docs/BIDDING.md`](docs/BIDDING.md) · [`docs/INTRADAY.md`](docs/INTRADAY.md) · [`docs/CVAR.md`](docs/CVAR.md) · [`docs/SIMULATOR.md`](docs/SIMULATOR.md) | Design notes |
+| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) · [`docs/FAQ.md`](docs/FAQ.md) | Terms and short answers |
+| [`CHANGELOG.md`](CHANGELOG.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md) | History and how to help |
 
 ## Licence
 
-MIT for code and documentation in this umbrella. Upstream market data keep their own licences — always attribute (Energy-Charts / SMARD, and others as added).
+MIT for code and documentation. Energy-Charts / SMARD data remain [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — always attribute.

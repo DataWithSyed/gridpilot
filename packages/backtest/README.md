@@ -16,3 +16,8 @@ Paper trading only. Energy-Charts / SMARD — CC BY 4.0.
 ## Costs and equity
 
 `gridpilot_backtest.costs.ExecutionCosts` applies ASSUMED fee/slippage/degradation to paper fills. `equity_plot.equity_and_drawdown_figure` writes `figures/equity_curve_net.png`.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.

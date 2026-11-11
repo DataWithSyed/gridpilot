@@ -42,8 +42,13 @@ Optional ENTSO-E: `pip install 'gridpilot-data[entsoe]'` and export `ENTSOE_API_
 
 ## Limitations
 
-See [`docs/limitations.md`](docs/limitations.md).
+See [`docs/limitations.md`](../../docs/limitations.md).
 
 ## Licence
 
 MIT for code. Upstream data keep their own licences — always attribute.
+
+
+## Documentation
+
+Part of the [GridPilot umbrella](../../README.md). Guides, methods, and measured paper results: [`docs/index.md`](../../docs/index.md). Paper trading only — no exchange connectivity and no real-money claims.
