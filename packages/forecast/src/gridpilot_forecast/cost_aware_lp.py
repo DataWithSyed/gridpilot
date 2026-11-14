@@ -28,6 +28,9 @@ def cycle_addend_eur_per_mwh(costs: ExecutionCosts) -> float:
     )
 
 
+THROUGHPUT_TIEBREAK_EUR_PER_MWH = 1e-4  # breaks zero-profit cycle degeneracy in water-value LPs
+
+
 def solve_day_lp_with_costs(
     prices: pd.Series,
     battery: BatteryConfig,
@@ -36,6 +39,7 @@ def solve_day_lp_with_costs(
     *,
     dt_h: float = 1.0,
     note: str = "cost_aware_lp",
+    throughput_penalty: float = 0.0,
 ) -> dict[pd.Timestamp, Decision]:
     """Daily LP with buy/sell worsened by fee + slippage + degradation.
 
@@ -43,6 +47,9 @@ def solve_day_lp_with_costs(
     sum_t  grid_in_t  * (price_t + add) + grid_out_t * (-price_t + add)
     where add = fee + slippage + degradation (€/MWh). BatteryConfig.degradation
     is *not* added again — pass costs.degradation_eur_per_mwh instead.
+    ``throughput_penalty`` is an optional tiny addend used by water-value
+    plans to break zero-profit cycle ties; default 0 leaves the locked
+    schedule unchanged.
     """
     prices = prices.astype(float)
     T = len(prices)
@@ -50,7 +57,7 @@ def solve_day_lp_with_costs(
         return {}
     n = 2 * T
     c_price = prices.to_numpy()
-    add = cycle_addend_eur_per_mwh(costs)
+    add = cycle_addend_eur_per_mwh(costs) + float(throughput_penalty)
     c_obj = np.concatenate([c_price + add, -c_price + add])
     e0 = state.soc * battery.energy_mwh
     e_min = battery.soc_min * battery.energy_mwh
@@ -88,6 +95,139 @@ def solve_day_lp_with_costs(
             note=note,
         )
     return plan
+
+
+
+
+def day_lp_objective(
+    prices: pd.Series,
+    battery: BatteryConfig,
+    soc: float,
+    costs: ExecutionCosts,
+    *,
+    dt_h: float = 1.0,
+    throughput_penalty: float = THROUGHPUT_TIEBREAK_EUR_PER_MWH,
+) -> float | None:
+    """Return the cost-aware LP objective (lower is more paper cash), or None on failure.
+
+    Objective is ``sum_t g_in (π+a) + g_out (-π+a)`` plus a tiny throughput
+    penalty that breaks zero-profit cycle degeneracy. The 1e-4 €/MWh default
+    is well inside finite-difference tolerance. Used for water values.
+    """
+    prices = prices.astype(float)
+    T = len(prices)
+    if T == 0:
+        return 0.0
+    n = 2 * T
+    c_price = prices.to_numpy()
+    add = cycle_addend_eur_per_mwh(costs) + float(throughput_penalty)
+    c_obj = np.concatenate([c_price + add, -c_price + add])
+    soc = float(min(max(soc, battery.soc_min), battery.soc_max))
+    e0 = soc * battery.energy_mwh
+    e_min = battery.soc_min * battery.energy_mwh
+    e_max = battery.soc_max * battery.energy_mwh
+    emax = battery.power_mw * dt_h
+    bounds = [(0.0, emax)] * T + [(0.0, emax)] * T
+    A_ub = []
+    b_ub = []
+    eta_c = battery.eta_charge
+    eta_d = battery.eta_discharge
+    for t in range(T):
+        row_hi = np.zeros(n)
+        row_lo = np.zeros(n)
+        for k in range(t + 1):
+            row_hi[k] = eta_c
+            row_hi[T + k] = -1.0 / eta_d
+            row_lo[k] = -eta_c
+            row_lo[T + k] = 1.0 / eta_d
+        A_ub.append(row_hi)
+        b_ub.append(e_max - e0)
+        A_ub.append(row_lo)
+        b_ub.append(-(e_min - e0))
+    res = linprog(c_obj, A_ub=np.asarray(A_ub), b_ub=np.asarray(b_ub), bounds=bounds, method="highs")
+    if not res.success:
+        return None
+    return float(res.fun)
+
+
+def arriving_soc_path(
+    plan: dict[pd.Timestamp, Decision],
+    prices: pd.Series,
+    battery: BatteryConfig,
+    soc0: float,
+    *,
+    dt_h: float = 1.0,
+) -> pd.Series:
+    """SoC at the *start* of each hour under a locked plan (before that hour's fill)."""
+    soc = float(soc0)
+    rows = []
+    eta_c = battery.eta_charge
+    eta_d = battery.eta_discharge
+    for ts in prices.index:
+        rows.append(soc)
+        d = plan.get(ts, Decision())
+        # energy change uses the planned MW (clipped later in settlement; here the LP is feasible)
+        gin = max(0.0, float(d.charge_mw)) * dt_h
+        gout = max(0.0, float(d.discharge_mw)) * dt_h
+        e = soc * battery.energy_mwh + eta_c * gin - gout / eta_d
+        soc = min(max(e / battery.energy_mwh, battery.soc_min), battery.soc_max)
+    return pd.Series(rows, index=prices.index, dtype=float)
+
+
+def water_value_on_path(
+    prices: pd.Series,
+    battery: BatteryConfig,
+    soc0: float,
+    costs: ExecutionCosts,
+    *,
+    dt_h: float = 1.0,
+    soc_delta: float = 0.02,
+) -> pd.Series:
+    """Hourly opportunity cost of stored energy (€/MWh of SoC energy) on a price path.
+
+    At each hour ``t``, this is a finite-difference of *subsequent-hour*
+    cost-aware LP cash (hours ``t+1, t+2, …``) with respect to energy on hand
+    at the start of ``t``. Hour ``t`` itself is excluded so a shoulder hour is
+    not treated as its own refill opportunity when deciding whether to sell.
+    The arriving SoC comes from the same-path locked plan (with a tiny
+    throughput tie-break). Energy left at the end of the horizon has no
+    terminal value (same convention as the daily LP), so the last hour's
+    water value is 0 and any sale above the cycle addend is reserved.
+    """
+    prices = prices.astype(float)
+    if len(prices) == 0:
+        return pd.Series(dtype=float)
+    st = BatteryState(soc=float(min(max(soc0, battery.soc_min), battery.soc_max)))
+    plan = solve_day_lp_with_costs(
+        prices, battery, st, costs, dt_h=dt_h, note="water_value_plan",
+        throughput_penalty=THROUGHPUT_TIEBREAK_EUR_PER_MWH,
+    )
+    arrive = arriving_soc_path(plan, prices, battery, st.soc, dt_h=dt_h)
+    ds = float(soc_delta)
+    if ds <= 0:
+        raise ValueError("soc_delta must be positive")
+    vals = []
+    for t, ts in enumerate(prices.index):
+        rem = prices.iloc[t + 1 :]
+        if len(rem) == 0:
+            vals.append(0.0)
+            continue
+        s = float(arrive.iloc[t])
+        step = ds
+        if s + step > battery.soc_max + 1e-12:
+            step = -ds
+        if s + step < battery.soc_min - 1e-12 or s + step > battery.soc_max + 1e-12:
+            vals.append(0.0)
+            continue
+        f0 = day_lp_objective(rem, battery, s, costs, dt_h=dt_h)
+        f1 = day_lp_objective(rem, battery, s + step, costs, dt_h=dt_h)
+        dE = step * battery.energy_mwh
+        if f0 is None or f1 is None or abs(dE) < 1e-12:
+            vals.append(0.0)
+            continue
+        # cash = -objective; water value = d cash / d energy
+        vals.append(-(f1 - f0) / dE)
+    return pd.Series(vals, index=prices.index, dtype=float)
 
 
 @dataclass

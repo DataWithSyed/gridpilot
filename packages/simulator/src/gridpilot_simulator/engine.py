@@ -21,8 +21,8 @@ from gridpilot_backtest.costs import SOURCED_COSTS, ExecutionCosts, apply_costs_
 from gridpilot_core.battery import BatteryConfig, BatteryState, apply_dispatch
 from gridpilot_core.risk import RiskLimits, RiskManager
 from gridpilot_core.strategy import Decision, ThresholdArbitrage
-from gridpilot_forecast.cost_aware_lp import solve_day_lp_with_costs
-from gridpilot_forecast.bid_curves import build_curves_for_day
+from gridpilot_forecast.cost_aware_lp import solve_day_lp_with_costs, water_value_on_path
+from gridpilot_forecast.bid_curves import build_curves_for_day, build_water_value_curves_for_day
 from gridpilot_forecast.cvar_lp import historical_day_scenarios, solve_day_lp_cvar
 from gridpilot_forecast.intraday import IntradayLayerConfig, reoptimize_after_da
 from gridpilot_simulator.clock import (
@@ -35,7 +35,7 @@ from gridpilot_simulator.clock import (
 )
 from gridpilot_simulator.scenarios import Scenario
 
-POLICIES = ("cost_aware", "quantile_bids", "cvar", "id_reopt")
+POLICIES = ("cost_aware", "quantile_bids", "water_value_bids", "cvar", "id_reopt")
 
 # Match the paper 1 MW / 2 MWh agent used in backtests.
 DEFAULT_DRAWDOWN_EUR = 20_000.0
@@ -70,7 +70,7 @@ class SimConfig:
     forecast_bias: float = 0.0  # used by forecast_failure
     on_tick: Callable[[dict[str, Any]], None] | None = None
     paper_trading_only: bool = True
-    policy: str = "cost_aware"  # cost_aware | quantile_bids | cvar | id_reopt
+    policy: str = "cost_aware"  # cost_aware | quantile_bids | water_value_bids | cvar | id_reopt
     cvar_lambda: float = 2.0
 
     def __post_init__(self) -> None:
@@ -153,6 +153,11 @@ class Simulator:
                         bid_curves = build_curves_for_day(
                             fan["p10"], fan["p50"], fan["p90"], batt.power_mw, cfg.costs
                         )
+                    elif policy == "water_value_bids":
+                        wv = water_value_on_path(fan["p50"], batt, start_ml.soc, cfg.costs, dt_h=1.0)
+                        bid_curves = build_water_value_curves_for_day(
+                            fan["p10"], fan["p50"], fan["p90"], wv, batt, cfg.costs
+                        )
                     elif policy == "cvar":
                         scen_paths = historical_day_scenarios(visible, hours, n_days=60)
                         if scen_paths:
@@ -220,7 +225,7 @@ class Simulator:
                 return new_st, gin, gout, ch, dh
 
             risk.reset_day(str(delivery_day(ts).date()))
-            if policy == "quantile_bids" and ts in bid_curves and np.isfinite(raw_px):
+            if policy in ("quantile_bids", "water_value_bids") and ts in bid_curves and np.isfinite(raw_px):
                 ch_b, dh_b = bid_curves[ts].accepted_volume(float(raw_px))
                 plan_ml[ts] = Decision(charge_mw=ch_b, discharge_mw=dh_b, note="sim_bid_clear")
             state_ml, gin_m, gout_m, ch_m, dh_m = _act(plan_ml, state_ml, count_cycles=True)

@@ -36,6 +36,23 @@ A second **schedule-anchored** family centres the planned MW from the
 cost-aware P50 LP as a mid step and offers leftover capacity only in
 the P10 / P90 tails, so a hold hour can still react to extremes.
 
+A third **water-value** family centres the same fan width on the
+opportunity cost of stored energy instead of the hour's own P50.
+At each hour `t`, a finite-difference of *subsequent-hour*
+cost-aware LP cash (hours `t+1, t+2, …` on the P50 path) with
+respect to energy on hand gives `wv` (€/MWh). Buy limits are
+centred at `η_c · wv − add` and sell limits at `wv / η_d + add`.
+P50−P10 / P90−P50 still spread the volume. If the reservation would
+cross, buy limits are pushed strictly below the lowest sell (the sell
+reservation is not lifted, so a realised price equal to `wv` remains
+a sell tie). There is **no terminal value** for leftover end-of-day
+SoC — the same convention as the locked daily LP — so the last hour's
+water value is 0 and a sale is reserved at the cycle addend only.
+This is intra-day water value, not a multi-day storage valuation.
+A tiny throughput penalty (`1e-4` €/MWh) breaks zero-profit cycle
+ties in the water-value LPs only; it does not change the locked
+schedule.
+
 ## Clearing and partial acceptance
 
 1. **Price clearing.** Inframarginal steps are fully accepted. When a
@@ -70,12 +87,21 @@ Script: `packages/forecast/scripts/run_gate_closure_bidding.py`.
 Measured numbers, including the honest negative result, live in
 [`packages/forecast/results/GATE_CLOSURE_BIDDING.md`](../packages/forecast/results/GATE_CLOSURE_BIDDING.md).
 
-**Headline:** on both fans, quantile bids and anchored bids
-**underperformed** the locked cost-aware schedule, and the 90% CIs
-exclude zero. Myopic hourly curves have no water value and under-cycle.
-The locked intertemporal LP remains the better paper policy on this
-window. The bidding code is kept because later layers (water-value
-reservations, intraday re-optimisation, imbalance) need it.
+**Headline (climatology re-run 2026-11-14, same 8,736 h window):**
+the locked schedule is still **60,379** €. Myopic quantile bids
+**13,082** € and anchored bids **17,740** € still underperform it
+(€/day **−129.94 [−149.98, −107.28]** and **−117.14 [−139.04, −94.56]**).
+Water-value bids reach **30,675** € (212 cycles vs 151 myopic vs 458
+locked). That **improves** on myopic quantile bids by **+17,594** €,
+**+48.33 [39.45, 58.87]** €/day, but **does not beat** the locked
+schedule (**−81.60 [−99.12, −61.52]** €/day). Both new CIs exclude
+zero. The locked intertemporal LP remains the better paper policy on
+this climatology fan: reservations still miss fills when the P50 path
+(and therefore `wv`) is wrong, and leftover end-of-day SoC has no
+terminal value. The 2026-11-10 ML price-only fan was **not** re-run
+here and is still a negative vs its own lock (quantile **3,566** vs
+**75,102**). None of these bidding figures replace the published
+cost-aware ML **65,473** € path.
 
 ## What this is not
 

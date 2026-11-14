@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> None:
     run.add_argument("--days", type=int, default=7)
     run.add_argument("--out", type=Path, default=None)
     run.add_argument("--cache", type=Path, default=None, help="Hourly DE-LU cache for --scenario historical")
-    run.add_argument("--policy", default="cost_aware", choices=("cost_aware", "quantile_bids", "cvar", "id_reopt"),
+    run.add_argument("--policy", default="cost_aware", choices=("cost_aware", "quantile_bids", "water_value_bids", "cvar", "id_reopt"),
                     help="Agent policy locked at gate closure (paper only)")
     run.add_argument("--cvar-lambda", type=float, default=2.0)
 

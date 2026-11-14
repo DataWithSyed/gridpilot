@@ -28,6 +28,7 @@ Short definitions as they are used in this repository. See [METHODOLOGY.md](METH
 | **Threshold strategy** | `ThresholdArbitrage`: charge and discharge around fixed price thresholds. The simple baseline in most tables. |
 | **Gate-closure bid curve** | A stepwise buy/sell price-quantity curve submitted at SDAC gate, built from P10/P50/P90, then cleared against the realised price. |
 | **Locked schedule** | Price-taking cost-aware LP on the same P50 fan, used as the bid-curve baseline. |
+| **Water value** | Opportunity cost of stored energy (€/MWh): a finite difference of subsequent-hour cost-aware LP cash on the P50 path. Bid limits centre on `η_c · wv − add` / `wv / η_d + add`. Intra-day only; leftover end-of-day SoC has no terminal value. |
 | **reBAP** | *regelzonenübergreifender einheitlicher Bilanzausgleichsenergiepreis*, the German imbalance settlement price. Official series require Netztransparenz OAuth and were **not fetchable** for the published runs. |
 | **PROXY_ID_EQ_DA / PROXY_REBAP_EQ_DA** | Labelled stand-ins that set the ID mid (or reBAP) equal to the realised DA price. They measure post-DA reshaping with **no ID–DA spread**. They are not official ID-index or reBAP data. |
 | **Block bootstrap** | Resampling of daily cash differences in moving 7-day blocks (400 draws, 90% percentile CI) to respect weekly dependence. |

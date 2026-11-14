@@ -12,7 +12,7 @@ Index of design notes, methods, and measured paper-trading results. Start with t
 | [METHODOLOGY.md](METHODOLOGY.md) | Forecast features, CQR, cost-aware and CVaR LPs, SDAC timing, bootstrap CIs |
 | [RESULTS.md](RESULTS.md) | All measured tables, windows, and links to source files |
 | [fees.md](fees.md) | Sourced vs assumed execution costs (retrieval 2026-11-10) |
-| [BIDDING.md](BIDDING.md) | SDAC-style gate-closure bid curves (honest negative vs locked schedule) |
+| [BIDDING.md](BIDDING.md) | SDAC-style gate-closure bid curves, including water-value reservations (honest negative vs the lock; improvement vs myopic curves) |
 | [INTRADAY.md](INTRADAY.md) | Post-DA re-optimisation; ID and reBAP proxies |
 | [CVAR.md](CVAR.md) | Cost-aware CVaR LP and return-versus-CVaR frontier |
 | [SIMULATOR.md](SIMULATOR.md) | Paper market simulator (CLI, dashboard, Docker) |

@@ -24,7 +24,11 @@ import pandas as pd
 from gridpilot_backtest.costs import ExecutionCosts, apply_costs_to_actions
 from gridpilot_core.battery import BatteryConfig, BatteryState, apply_dispatch
 from gridpilot_core.strategy import Decision
-from gridpilot_forecast.cost_aware_lp import cycle_addend_eur_per_mwh, solve_day_lp_with_costs
+from gridpilot_forecast.cost_aware_lp import (
+    cycle_addend_eur_per_mwh,
+    solve_day_lp_with_costs,
+    water_value_on_path,
+)
 
 GATE_CLOSURE_HOUR = 12
 GATE_CLOSURE_TZ = "Europe/Berlin"
@@ -236,6 +240,105 @@ def build_schedule_anchored_curves(
     return curves
 
 
+
+
+def reservation_prices(
+    water_value_eur_mwh: float,
+    battery: BatteryConfig,
+    costs: ExecutionCosts,
+) -> tuple[float, float]:
+    """Buy and sell reservation prices implied by a stored-energy water value.
+
+    Charging 1 MWh from the grid stores ``η_c`` MWh, worth ``η_c * wv``, and
+    costs ``π + add``. Buying is reserved at ``η_c * wv - add``.
+    Discharging 1 MWh to the grid uses ``1/η_d`` MWh of storage, worth
+    ``wv / η_d``, and earns ``π - add``. Selling is reserved at
+    ``wv / η_d + add``.
+    """
+    add = cycle_addend_eur_per_mwh(costs)
+    wv = float(water_value_eur_mwh)
+    buy = battery.eta_charge * wv - add
+    sell = wv / battery.eta_discharge + add
+    return float(buy), float(sell)
+
+
+def build_water_value_bid_curve(
+    *,
+    ts: pd.Timestamp,
+    p10: float,
+    p50: float,
+    p90: float,
+    water_value_eur_mwh: float,
+    battery: BatteryConfig,
+    costs: ExecutionCosts,
+    n_steps: int = DEFAULT_N_STEPS,
+    note: str = "water_value_bid",
+) -> HourBidCurve:
+    """Centre bid limits on the water-value reservation; use the fan as width.
+
+    Unlike the myopic P10/P50/P90 curve (centred on the *hour's* forecast
+    price), this curve only buys below the opportunity cost of stored energy
+    and only sells above it. The P50−P10 / P90−P50 gaps still spread volume
+    around that reservation so a forecast miss can change the fill. Paper only.
+    """
+    lo, mid, hi = float(p10), float(p50), float(p90)
+    if lo > mid:
+        lo = mid
+    if hi < mid:
+        hi = mid
+    buy_res, sell_res = reservation_prices(water_value_eur_mwh, battery, costs)
+    add = cycle_addend_eur_per_mwh(costs)
+    gap = add if add > 0 else 0.01
+    n_steps = max(int(n_steps), 1)
+    qty = float(battery.power_mw) / n_steps
+    width_lo = max(0.0, mid - lo)
+    width_hi = max(0.0, hi - mid)
+    if n_steps == 1:
+        buy_limits = [buy_res]
+        sell_limits = [sell_res]
+    else:
+        buy_limits = list(np.linspace(buy_res, buy_res - width_lo, n_steps))
+        sell_limits = list(np.linspace(sell_res, sell_res + width_hi, n_steps))
+    # Uncross without lifting the sell reservation: a realised price equal to
+    # wv should still be a sell tie (ASSUMED 50% accept), not miss the offer
+    # because of a rounding gap. Push buy limits strictly below the lowest sell.
+    if max(buy_limits) >= min(sell_limits) - 1e-12:
+        floor = min(sell_limits)
+        buy_limits = [min(L, floor - gap) for L in buy_limits]
+    buy = _merge_steps([BidStep(float(L), qty) for L in buy_limits], descending=True)
+    sell = _merge_steps([BidStep(float(L), qty) for L in sell_limits], descending=False)
+    return HourBidCurve(ts=ts, buy_steps=buy, sell_steps=sell, note=note)
+
+
+def build_water_value_curves_for_day(
+    p10: pd.Series,
+    p50: pd.Series,
+    p90: pd.Series,
+    water_values: pd.Series,
+    battery: BatteryConfig,
+    costs: ExecutionCosts,
+    *,
+    n_steps: int = DEFAULT_N_STEPS,
+    note: str = "water_value_bid",
+) -> dict[pd.Timestamp, HourBidCurve]:
+    """One water-value curve per hour on the shared forecast index."""
+    curves: dict[pd.Timestamp, HourBidCurve] = {}
+    for ts in p50.index:
+        wv = float(water_values.loc[ts]) if ts in water_values.index else 0.0
+        curves[ts] = build_water_value_bid_curve(
+            ts=ts,
+            p10=float(p10.loc[ts]),
+            p50=float(p50.loc[ts]),
+            p90=float(p90.loc[ts]),
+            water_value_eur_mwh=wv,
+            battery=battery,
+            costs=costs,
+            n_steps=n_steps,
+            note=note,
+        )
+    return curves
+
+
 def rolling_hod_quantiles(
     history: pd.Series,
     index: pd.DatetimeIndex,
@@ -394,13 +497,14 @@ def evaluate_day(
     soc_schedule: float,
     soc_quantile: float,
     soc_anchored: float,
+    soc_water: float | None = None,
     dt_h: float = 1.0,
     n_steps: int = DEFAULT_N_STEPS,
 ) -> dict[str, pd.DataFrame]:
-    """Lock a P50 cost-aware schedule and clear quantile / anchored bids.
+    """Lock a P50 cost-aware schedule and clear quantile, anchored, and water-value bids.
 
-    All three policies see the same forecast fan. SoC is tracked separately
-    so the comparison stays fair. Paper trading only.
+    All policies see the same forecast fan. SoC is tracked separately so the
+    comparison stays fair. Paper trading only.
     """
     st_sched = _new_state(soc_schedule)
     plan = solve_day_lp_with_costs(p50, battery, st_sched, costs, dt_h=dt_h, note="locked_schedule")
@@ -409,4 +513,18 @@ def evaluate_day(
     q_acts = clear_day_curves(q_curves, prices, battery, soc_quantile, dt_h=dt_h)
     a_curves = build_schedule_anchored_curves(p10, p50, p90, plan, battery.power_mw, costs)
     a_acts = clear_day_curves(a_curves, prices, battery, soc_anchored, dt_h=dt_h)
-    return {"schedule": sched, "quantile_bid": q_acts, "anchored_bid": a_acts, "plan": plan}
+    if soc_water is None:
+        soc_water = soc_schedule
+    wv = water_value_on_path(p50, battery, soc_water, costs, dt_h=dt_h)
+    w_curves = build_water_value_curves_for_day(
+        p10, p50, p90, wv, battery, costs, n_steps=n_steps
+    )
+    w_acts = clear_day_curves(w_curves, prices, battery, soc_water, dt_h=dt_h)
+    return {
+        "schedule": sched,
+        "quantile_bid": q_acts,
+        "anchored_bid": a_acts,
+        "water_value_bid": w_acts,
+        "plan": plan,
+        "water_values": wv,
+    }

@@ -10,14 +10,16 @@ from gridpilot_forecast.bid_curves import (
     MARGINAL_ACCEPT_FRACTION,
     build_quantile_bid_curve,
     build_curves_for_day,
+    build_water_value_bid_curve,
     clear_day_curves,
     evaluate_day,
     gate_closure_time,
+    reservation_prices,
     rolling_hod_quantiles,
     settle_locked_schedule,
 )
 from gridpilot_core.strategy import Decision
-from gridpilot_forecast.cost_aware_lp import cycle_addend_eur_per_mwh, solve_day_lp_with_costs
+from gridpilot_forecast.cost_aware_lp import cycle_addend_eur_per_mwh, solve_day_lp_with_costs, water_value_on_path
 
 
 def _batt(*, soc: float = 0.50) -> tuple[BatteryConfig, BatteryState]:
@@ -121,7 +123,7 @@ def test_no_simultaneous_charge_and_discharge_and_soc_band():
         soc_schedule=0.50, soc_quantile=0.50, soc_anchored=0.50,
     )
     for name, df in ev.items():
-        if name == "plan":
+        if name in {"plan", "water_values"}:
             continue
         both = (df["charge_mw"] > 1e-9) & (df["discharge_mw"] > 1e-9)
         assert not bool(both.any()), name
@@ -181,3 +183,79 @@ def test_locked_schedule_matches_lp_volume_when_soc_allows():
     df = settle_locked_schedule(plan, prices, cfg, 0.50)
     assert float(df["grid_in_mwh"].sum()) > 0.5
     assert float(df["grid_out_mwh"].sum()) > 0.4
+
+
+
+def _eta1_batt(**kw) -> BatteryConfig:
+    defaults = dict(
+        power_mw=1.0,
+        energy_mwh=2.0,
+        eta_charge=1.0,
+        eta_discharge=1.0,
+        soc_min=0.0,
+        soc_max=1.0,
+        initial_soc=0.20,
+        degradation_eur_per_mwh=0.0,
+    )
+    defaults.update(kw)
+    return BatteryConfig(**defaults)
+
+
+def test_two_hour_finite_difference_water_value_equals_sale_price():
+    """With unit efficiency, no addend, and headroom to sell, wv equals the remaining sale price."""
+    cfg = _eta1_batt(initial_soc=0.20)
+    idx = pd.date_range("2026-01-05", periods=2, freq="h", tz="Europe/Berlin")
+    prices = pd.Series([100.0, 100.0], index=idx)
+    wv = water_value_on_path(prices, cfg, soc0=0.20, costs=ZERO_COSTS, soc_delta=0.02)
+    assert abs(float(wv.iloc[0]) - 100.0) < 1.5
+    # No terminal value after the last hour, so the last-hour water value is 0
+    # and a sale is reserved at the cycle addend only.
+    assert abs(float(wv.iloc[1]) - 0.0) < 1.5
+    buy, sell = reservation_prices(float(wv.iloc[0]), cfg, ZERO_COSTS)
+    assert abs(buy - 100.0) < 1.5
+    assert abs(sell - 100.0) < 1.5
+
+
+def test_water_value_holds_through_shoulder_for_evening_peak():
+    """Myopic P50 curves sell in an 80 €/MWh shoulder; water-value reservations wait for 150."""
+    cfg = _eta1_batt(initial_soc=0.0)
+    idx = pd.date_range("2026-01-06", periods=5, freq="h", tz="Europe/Berlin")
+    # Two cheap hours fill the 2 MWh battery; one shoulder; two peak hours that
+    # exactly exhaust inventory. There is no later recharge, so a shoulder sale
+    # would steal a 150 €/MWh peak sale. Realised cheap/peak are strictly inside
+    # the buy / sell regions so a knife-edge π == reservation does not miss the fill.
+    p50 = pd.Series([20.0, 20.0, 80.0, 150.0, 150.0], index=idx)
+    p10 = p50 - 5.0
+    p90 = p50 + 5.0
+    prices = pd.Series([10.0, 10.0, 90.0, 160.0, 160.0], index=idx)
+    ev = evaluate_day(
+        prices, p10, p50, p90, cfg, ZERO_COSTS,
+        soc_schedule=0.0, soc_quantile=0.0, soc_anchored=0.0, soc_water=0.0,
+    )
+    wv_acts = ev["water_value_bid"]
+    shoulder = wv_acts.iloc[2:3]
+    peak = wv_acts.iloc[3:]
+    q_shoulder = ev["quantile_bid"].iloc[2:3]
+    assert float(wv_acts["grid_in_mwh"].iloc[:2].sum()) > 0.5, "should fill in the cheap hours"
+    assert float(shoulder["grid_out_mwh"].sum()) < 1e-9, "water-value bids should hold through the shoulder"
+    assert float(peak["grid_out_mwh"].sum()) > 0.4, "water-value bids should sell into the evening peak"
+    assert float(q_shoulder["grid_out_mwh"].sum()) > 0.5, "myopic quantile bids should sell the shoulder"
+    mid_wv = float(ev["water_values"].iloc[2])
+    assert mid_wv > 120.0, mid_wv
+
+
+def test_water_value_curve_centres_on_reservation_not_p50():
+    cfg = _eta1_batt()
+    ts = pd.Timestamp("2026-01-07", tz="Europe/Berlin")
+    curve = build_water_value_bid_curve(
+        ts=ts, p10=70.0, p50=80.0, p90=90.0,
+        water_value_eur_mwh=150.0, battery=cfg, costs=ZERO_COSTS,
+    )
+    # Stored energy is worth 150, so 80 is a buy (below reservation) not a sell.
+    ch, dis = curve.accepted_volume(80.0)
+    assert ch > 0.5
+    assert dis == 0.0
+    assert min(s.limit_eur_mwh for s in curve.sell_steps) >= 150.0 - 1e-9
+    ch2, dis2 = curve.accepted_volume(160.0)
+    assert ch2 == 0.0
+    assert dis2 > 0.5

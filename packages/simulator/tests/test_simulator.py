@@ -134,7 +134,7 @@ def test_no_real_order_code():
 def test_new_policies_run_without_lookahead():
     """quantile_bids, cvar and id_reopt must run and must not see future ticks."""
     scen = load_scenario("normal", seed=0, days=5)
-    for policy in ("quantile_bids", "cvar", "id_reopt"):
+    for policy in ("quantile_bids", "water_value_bids", "cvar", "id_reopt"):
         summary = run_simulation(scen, SimConfig(speed=0, seed=0, policy=policy))
         assert summary["paper_trading_only"] is True
         assert summary["policy"] == policy

@@ -2,9 +2,22 @@
 
 All notable changes to [DataWithSyed/gridpilot](https://github.com/DataWithSyed/gridpilot). Dates follow the git author date (box-local, Asia/Karachi). Built from `git log`; this file does not invent results.
 
-The package version in `pyproject.toml` is **0.4.0**. **Paper trading only** throughout.
+The package version in `pyproject.toml` is **0.5.0**. **Paper trading only** throughout.
 
-## Unreleased
+## 0.5.0 — 2026-11-14
+
+### Added
+
+- Water-value reservations on gate-closure bid curves: remaining-day cost-aware LP finite difference on the P50 path, bids centred on `η_c · wv − add` / `wv / η_d + add` with the existing fan width. Intra-day only (no terminal SoC value). Simulator hook `--policy water_value_bids`.
+- Same-window climatology re-run (2025-11-01 → 2026-10-30, 8,736 h, sourced fees): water-value bids **30,675** € vs locked schedule **60,379** € (**did not beat** the lock, **−81.60 [−99.12, −61.52]** €/day) and vs myopic quantile bids **13,082** € (**improved**, **+48.33 [39.45, 58.87]** €/day). Cycles 212 vs 151 myopic vs 458 locked. Not a re-run of the published cost-aware ML 65,473 € path. The 2026-11-10 ML price-only bid figures were left unchanged (no new walk-forward).
+
+### Documentation
+
+- README, `docs/RESULTS.md`, `docs/BIDDING.md`, `docs/METHODOLOGY.md`, `docs/SIMULATOR.md`, `docs/GLOSSARY.md`, `docs/FAQ.md`, `docs/limitations.md`, and `docs/index.md` updated with the measured water-value result (honest negative vs the lock, honest improvement vs myopic curves).
+
+## Documentation (2026-11-11)
+
+These docs shipped on 0.4.0 as commit `308bb11`; recorded here so the changelog stays dated.
 
 ### Documentation (2026-11-11)
 

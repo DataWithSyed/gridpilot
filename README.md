@@ -2,7 +2,7 @@
 
 **Open paper-trading agent stack for electricity markets.** One public repository ([DataWithSyed/gridpilot](https://github.com/DataWithSyed/gridpilot)): public data in, a forecast, a risk-limited schedule or bid curve, and paper evaluation out.
 
-Version **0.4.0**. Documentation index: [`docs/index.md`](docs/index.md).
+Version **0.5.0**. Documentation index: [`docs/index.md`](docs/index.md).
 
 > **Paper trading only.** GridPilot does **not** connect to a power exchange or broker, does **not** place or sign real orders, and does **not** claim real-money performance. The “live” package is a near-live **paper** pilot on public Energy-Charts prices. Star counts are not a project goal in these docs.
 
@@ -10,7 +10,7 @@ Version **0.4.0**. Documentation index: [`docs/index.md`](docs/index.md).
 
 **It is** a research stack for a German DE-LU day-ahead paper battery (illustrative **1 MW / 2 MWh**): Energy-Charts / SMARD prices and day-ahead load/solar/wind forecasts, walk-forward P10/P50/P90 forecasting, cost-aware and CVaR dispatch LPs, SDAC-style bid curves, a labelled post-DA re-optimisation layer, walk-forward backtests, a tick simulator, and a Streamlit view.
 
-**It is not** an execution venue, an EMS product with live order routing, or a measured intraday / official reBAP study. Published coverage is still **below 80%**. Degradation is still an **ASSUMED 5 €/MWh**. Gate-closure bid curves **under-cycled** versus a locked schedule. Those limits are documented, not papered over.
+**It is not** an execution venue, an EMS product with live order routing, or a measured intraday / official reBAP study. Published coverage is still **below 80%**. Degradation is still an **ASSUMED 5 €/MWh**. Gate-closure bid curves still **trail the locked schedule** even after water-value reservations (they do beat myopic P10/P50/P90 curves). Those limits are documented, not papered over.
 
 ## Architecture
 
@@ -72,7 +72,7 @@ Figures are copied from committed result files. Full tables, hour counts, and ca
 | --- | --- | --- | --- |
 | **Cost-aware ML vs threshold vs perfect foresight** (sourced fees) | 2025-11-01 → 2026-10-30, **8,735** h | Threshold **32,367** €; cost-aware ML **65,473** € (**79.6%** of cost-aware PF **82,271** €); Δ vs threshold **+90.9 [76.6, 104.7]** €/day | [`sourced_fees_backtest.json`](packages/forecast/results/sourced_fees_backtest.json) |
 | **Live pilot accuracy** | **2026-10-28 → 2026-11-10**, 14 d / 336 h (re-run **2026-11-10**) | MAE **39.20** vs naive **75.68** €/MWh; coverage **52.4%**; ML net **3,351** € (**87.0%** of PF net **3,852**) | [`results/live/LIVE_PILOT.md`](results/live/LIVE_PILOT.md) |
-| **Bid curves (negative result)** | Same 12-month calendar, **8,736** h, same-fan comparison | Climatology lock **60,379** vs quantile bids **13,082** (€/day **−129.94 [−149.98, −107.28]**). Curves under-cycled. Not comparable to the 65,473 € path | [`GATE_CLOSURE_BIDDING.md`](packages/forecast/results/GATE_CLOSURE_BIDDING.md) |
+| **Bid curves + water value** | Same 12-month calendar, **8,736** h, same-fan climatology (re-run **2026-11-14**) | Lock **60,379** vs quantile **13,082** vs water-value **30,675**. Water-value vs lock **−81.60 [−99.12, −61.52]** €/day (**did not beat** the schedule); vs myopic quantile **+48.33 [39.45, 58.87]** €/day (**improved**). Not comparable to the 65,473 € path | [`GATE_CLOSURE_BIDDING.md`](packages/forecast/results/GATE_CLOSURE_BIDDING.md) |
 | **Intraday / imbalance — proxy-only** | Same climatology DA lock | Full ID close **83,394** € (**+23,015**; **+63.23 [52.36, 73.28]** €/day) under **PROXY_ID_EQ_DA**. No public ID or official reBAP series | [`INTRADAY_IMBALANCE.md`](packages/forecast/results/INTRADAY_IMBALANCE.md) |
 | **CVaR frontier** | Same calendar, **8,736** h, last 60 causal paths | λ = 0: **69,622** / CVaR **18.56**; λ = 2: **66,718** / **6.34**; **λ = 5 did not beat λ = 2** (CVaR **6.68**). Not a re-run of 65,473 € | [`CVAR_FRONTIER.md`](packages/forecast/results/CVAR_FRONTIER.md) |
 
@@ -139,7 +139,7 @@ The sourced variable fee is **ECC clearing only**. Real all-in exchange costs ma
 - Nominal 80% forecast coverage is still **below 80%** (tight Mondrian **78.9%** on the 12-month window; live pilot **52.4%**).
 - **No public intraday or official reBAP data** in the published runs; the ID result is **proxy-only**.
 - Degradation stays an **ASSUMED 5 €/MWh** and dominates the cost line.
-- Gate-closure bid curves **under-cycled** and lost money versus the locked schedule (CIs exclude 0).
+- Gate-closure bid curves still lose to the locked schedule after water-value reservations (**30,675** vs **60,379** €; **−81.60 [−99.12, −61.52]** €/day). They do beat myopic quantile bids (**+48.33 [39.45, 58.87]** €/day). Both CIs exclude 0.
 - Sourced DA fee omits the unpublished current EPEX trading fee (lower bound).
 - Bid-curve, ID, and CVaR cash are not substitutes for the published cost-aware ML **65,473 €** path.
 - On the CVaR frontier, **λ = 5 did not** improve out-of-sample CVaR versus λ = 2.
@@ -148,11 +148,11 @@ The sourced variable fee is **ECC clearing only**. Real all-in exchange costs ma
 
 - [ ] Public ID-index or official reBAP series, if and when they can be fetched without inventing a proxy.
 - [ ] Calibration work that actually reaches 80% coverage — and a check of whether that changes paper profit (it has not so far).
-- [ ] Bid-curve designs that do not systematically under-cycle, or a clear decision to drop the approach.
+- [ ] Bid-curve designs that close the remaining gap to the locked schedule (water-value reservations improved on myopic curves, 13,082 → 30,675 €, but still trail 60,379 €), or a clear decision to keep the price-taking lock.
 - [ ] A sourced (not assumed) degradation or wear model if a defensible public figure appears.
 - [ ] Current EPEX DE-LU trading fee, if it is published.
 - [x] Umbrella monorepo, core runtime, data, forecast, risk, strategies, backtest, dashboard, live paper pilot, simulator.
-- [x] Cost-aware LP, sourced fee catalog, gate-closure bids (negative), ID proxies, CVaR frontier, simulator hooks.
+- [x] Cost-aware LP, sourced fee catalog, gate-closure bids (negative vs lock; water-value layer **2026-11-14**), ID proxies, CVaR frontier, simulator hooks.
 
 ## Further documentation
 

@@ -83,7 +83,7 @@ Found in the installed packages (names only; see the source for signatures).
 
 **Risk package.** `RiskLimitSpec`, `KillSwitch`, plus bootstrap helpers used by strategy walk-forwards.
 
-**Live and simulator.** `LivePilotConfig` and `packages/live/scripts/run_live_pilot.py`. `SimConfig`, `Simulator`, `SimClock`, `Scenario`; CLI `gridpilot-sim`. Policies: `cost_aware`, `quantile_bids`, `cvar`, `id_reopt`.
+**Live and simulator.** `LivePilotConfig` and `packages/live/scripts/run_live_pilot.py`. `SimConfig`, `Simulator`, `SimClock`, `Scenario`; CLI `gridpilot-sim`. Policies: `cost_aware`, `quantile_bids`, `water_value_bids`, `cvar`, `id_reopt`.
 
 ## What is intentionally not here
 

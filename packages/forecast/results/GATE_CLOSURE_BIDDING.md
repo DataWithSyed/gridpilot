@@ -1,50 +1,41 @@
 # Gate-closure bid curves vs locked schedule (paper only)
 
-Window: **2025-11-01 → 2026-10-30** (364 days, **8,736** hours; spring/fall DST cancel).
-Gate closure: **12:00 Europe/Berlin on D-1**. First deadline: 2025-10-31 12:00 Europe/Berlin.
-Costs: **sourced** preset (ECC DA clearing 0.015 €/MWh, DA slippage 0, degradation still ASSUMED 5 €/MWh). See `docs/fees.md`.
-Battery: 1 MW / 2 MWh, η 0.95/0.95, SoC 5–95%. Paper trading only — no real orders.
-Marginal price-tie fraction ASSUMED 0.5 (no SDAC residual merit-order is available).
+Window: 2025-11-01 → 2026-10-30  (364 days, 8736 hours).
+Gate closure: 12:00 Europe/Berlin on D-1. First deadline: 2025-10-31 12:00:00+01:00.
+Forecast: **climatology** — Causal 90-day hour-of-day climatology (P10/P50/P90); same fan for all policies.
+Costs: sourced preset (see `docs/fees.md`); marginal price-tie fraction ASSUMED 0.5.
 
-Both policies on a given row see the **same** P10/P50/P90 fan. The locked schedule is a price-taking fill of the cost-aware LP on P50 (day-locked at gate closure). Quantile bid curves convert the fan into 3-step buy/sell price-quantity curves and clear against the realised price with SoC partial acceptance. Schedule-anchored curves centre volume on the LP plan and add P10/P90 tails.
+Water values are the opportunity cost of stored energy from a remaining-day cost-aware LP on the P50 path (finite difference of paper cash vs starting SoC). There is no terminal value for leftover end-of-day SoC — the same convention as the locked daily LP. Bid limits are centred on the resulting reservation prices; P50−P10 / P90−P50 still set the fan width. Paper trading only.
 
-These schedule cash figures are **not** a replacement for the published sourced cost-aware ML path (**65,473** EUR, 411 cycles). That published run used fundamentals, PaperAgent cycle/drawdown clips, and the live cost-aware agent path. The ML fan here is **price-only** (no fundamentals), day-locked (no hourly re-optimisation), and unclipped by the 2-cycle/day risk limit (ML schedule **479.4** cycles). Compare **bid vs schedule on the same fan only**.
+## Final net cash (EUR)
 
-## 12-month results
+| Policy | Net EUR | Throughput MWh | Cycles |
+| --- | ---: | ---: | ---: |
+| Locked P50 cost-aware schedule | 60379.21 | 1831.2 | 457.8 |
+| Quantile bid curves (P10/P50/P90) | 13081.61 | 602.6 | 150.7 |
+| Schedule-anchored bid curves | 17739.57 | 301.6 | 75.4 |
+| Water-value bid curves | 30675.43 | 848.1 | 212.0 |
 
-| Forecast | Policy | Net EUR | Throughput MWh | Cycles |
-| --- | --- | ---: | ---: | ---: |
-| Causal 90-day hour-of-day climatology | Locked P50 cost-aware schedule | 60,379.21 | 1,831.2 | 457.8 |
-| Causal 90-day hour-of-day climatology | Quantile bid curves (P10/P50/P90) | 13,081.61 | 602.6 | 150.7 |
-| Causal 90-day hour-of-day climatology | Schedule-anchored bid curves | 17,739.57 | 301.6 | 75.4 |
-| Walk-forward ML + tight Mondrian (price-only) | Locked P50 cost-aware schedule | 75,101.52 | 1,917.5 | 479.4 |
-| Walk-forward ML + tight Mondrian (price-only) | Quantile bid curves (P10/P50/P90) | 3,566.38 | 751.6 | 187.9 |
-| Walk-forward ML + tight Mondrian (price-only) | Schedule-anchored bid curves | 22,866.78 | 389.7 | 97.4 |
+- Quantile bids vs schedule: -47297.60 EUR — **did not improve** on this window.
+- Anchored bids vs schedule: -42639.63 EUR — **did not improve** on this window.
+- Water-value bids vs schedule: -29703.77 EUR — **did not improve** on this window.
+- Water-value bids vs myopic quantile bids: +17593.83 EUR — **improved** on this window.
 
-## Incremental daily value (moving-block bootstrap, block=7 d, 400 draws, 90% CI)
+## Incremental daily value (moving-block bootstrap)
 
-| Forecast | Contrast | Mean €/day | 90% CI |
-| --- | --- | ---: | --- |
-| Climatology | Quantile bids − schedule | −129.94 | [−149.98, −107.28] |
-| Climatology | Anchored bids − schedule | −117.14 | [−139.04, −94.56] |
-| ML price-only | Quantile bids − schedule | −196.53 | [−222.03, −171.41] |
-| ML price-only | Anchored bids − schedule | −143.50 | [−163.33, −122.56] |
+- Quantile bids − schedule: -129.94 €/day  90% CI [-149.98, -107.28]  (n=364, block=7d, boot=400)
+- Anchored bids − schedule: -117.14 €/day  90% CI [-139.04, -94.56]  (n=364, block=7d, boot=400)
+- Water-value bids − schedule: -81.60 €/day  90% CI [-99.12, -61.52]  (n=364, block=7d, boot=400)
+- Water-value bids − quantile bids: 48.33 €/day  90% CI [39.45, 58.87]  (n=364, block=7d, boot=400)
 
-Every CI **excludes 0**. Standalone quantile curves and schedule-anchored curves **did not improve** on the locked cost-aware schedule on this window.
+A CI that contains 0 means the year-long difference is not distinguishable from noise at 90% under weekly blocks.
 
-A 30-day ML confirmation on **2026-10-01 → 2026-10-30** (721 h) showed the same sign: schedule 7,812.86 vs quantile bids 31.55 vs anchored 2,174.67 EUR; quantile − schedule **−259.38 €/day**, 90% CI [−309.23, −178.10].
+## What this does and does not show
 
-## What helped, and what did not
-
-- **Did not help:** turning P10/P50/P90 into myopic hourly bid curves. The curves under-cycle (150–188 cycles vs 458–479 for the locked schedule) because they have no explicit water value or intra-day SoC plan. They correctly refuse some forecast misses, but they also skip profitable planned cycles when the realised price sits between the steps or the battery is in the wrong state from earlier refusals. Anchored curves are better than standalone quantile curves under ML (22,867 vs 3,566) but still far behind the locked schedule (75,102).
-- **Did help as infrastructure:** the gate-closure curve builder, SDAC-style clearing with partial acceptance, and a fair same-fan backtest are in place for later work (water-value bids, intraday re-optimisation, imbalance). Tests cover causality, SoC clipping, ties, negative prices, and a toy case where bids correctly skip an unprofitable locked charge.
-- Climatology and ML fans agree on the **direction** of the result.
-
-## How to reproduce
-
-```bash
-python packages/forecast/scripts/run_gate_closure_bidding.py --forecast climatology --costs sourced
-python packages/forecast/scripts/run_gate_closure_bidding.py --forecast ml --costs sourced
-```
-
-Paper trading only. Machine-readable numbers: `packages/forecast/results/gate_closure_bidding.json`. Design notes: `docs/BIDDING.md`.
+- Same forecast fan for every policy; no lookahead into delivery-day prices.
+- The locked schedule is a price-taking fill of the cost-aware LP on P50 (the current approach).
+- Myopic quantile curves bid around each hour's own P10/P50/P90 and have no water value, so they under-cycle relative to the locked schedule.
+- Water-value curves buy only below ``η_c · wv − add`` and sell only above ``wv / η_d + add``. They can still miss a fill when the realised price is inside the reservation but the P50 path (and therefore wv) was wrong.
+- Intra-day water value only: leftover SoC at the end of the delivery day is worthless in the LP, so a late-day reservation can be lower than a multi-day storage valuation would suggest.
+- Climatology is not the production ML+CQR fan. Figures are not comparable to the published ML cost-aware 65,473 EUR path without a `--forecast ml` run.
+- Paper trading only; no real orders.

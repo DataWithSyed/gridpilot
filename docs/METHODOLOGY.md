@@ -79,7 +79,9 @@ The published frontier sweeps \(\lambda \in \{0, 0.5, 1, 2, 5, 10\}\) under the 
 
 ## Gate-closure bid curves
 
-At 12:00 Europe/Berlin on D-1, P10/P50/P90 are turned into a default three-step buy/sell price-quantity curve. Buy limits run from \(p_{50} - a\) down to \(p_{10} - a\); sell limits from \(p_{50} + a\) up to \(p_{90} + a\). A buy (sell) step is accepted when the realised clearing price is at or below (at or above) the limit. When a limit **equals** the clearing price, **50%** of that step is accepted — an **ASSUMED** tie-break, because the official SDAC residual merit-order is not available. SoC and power clipping is a second, physical partial-acceptance step. The locked cost-aware P50 schedule on the **same** fan is the price-taking baseline. Details: [BIDDING.md](BIDDING.md).
+At 12:00 Europe/Berlin on D-1, P10/P50/P90 are turned into a default three-step buy/sell price-quantity curve. Buy limits run from \(p_{50} - a\) down to \(p_{10} - a\); sell limits from \(p_{50} + a\) up to \(p_{90} + a\). A buy (sell) step is accepted when the realised clearing price is at or below (at or above) the limit. When a limit **equals** the clearing price, **50%** of that step is accepted — an **ASSUMED** tie-break, because the official SDAC residual merit-order is not available. SoC and power clipping is a second, physical partial-acceptance step. The locked cost-aware P50 schedule on the **same** fan is the price-taking baseline.
+
+Water-value curves keep that fan width but centre limits on the opportunity cost of stored energy. At hour `t`, `wv` is a finite difference of *subsequent-hour* (`t+1, t+2, …`) cost-aware LP cash on the P50 path versus energy on hand. Buy limits centre at `η_c · wv − add`; sell limits at `wv / η_d + add`. There is no terminal value for leftover end-of-day SoC (same convention as the daily LP), so the last hour's water value is 0. Details: [BIDDING.md](BIDDING.md).
 
 ## Post-DA re-optimisation and imbalance
 

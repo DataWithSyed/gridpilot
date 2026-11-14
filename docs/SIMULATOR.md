@@ -19,6 +19,7 @@
 | --- | --- |
 | `cost_aware` (default) | Cost-aware LP on the climatology P50 path (original behaviour). |
 | `quantile_bids` | P10/P50/P90 SDAC-style curves, cleared at the realised price with partial acceptance. |
+| `water_value_bids` | Same fan width, limits centred on remaining-day water-value reservations (intra-day, no terminal SoC). |
 | `cvar` | Cost-aware CVaR LP on the last 60 causal daily paths (`--cvar-lambda`, default 2). |
 | `id_reopt` | Lock the cost-aware DA plan at gate closure, then re-optimise at 13:00 D-1 once DA prices are public. ID mid is the **PROXY_ID_EQ_DA** label (Energy-Charts has no public ID series). Tick cash still uses the DA fee preset. |
 

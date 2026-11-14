@@ -7,7 +7,8 @@ so the year-long run stays memory-light. Pass --forecast ml to use the
 same walk-forward quantile model as the production cost-aware agent
 (heavier; processes one day at a time and garbage-collects).
 
-Both policies see the same fan. Costs default to the sourced fee preset.
+All policies see the same fan, including water-value reservations from the
+remaining-day cost-aware LP on P50. Costs default to the sourced fee preset.
 """
 from __future__ import annotations
 
@@ -117,7 +118,7 @@ def run(
             mondrian_mode="tight",
         )
 
-    soc = {k: battery.initial_soc for k in ("schedule", "quantile_bid", "anchored_bid")}
+    soc = {k: battery.initial_soc for k in ("schedule", "quantile_bid", "anchored_bid", "water_value_bid")}
     cash0 = {k: 0.0 for k in soc}
     daily = {k: [] for k in soc}
     thru = {k: 0.0 for k in soc}
@@ -138,8 +139,9 @@ def run(
             soc_schedule=soc["schedule"],
             soc_quantile=soc["quantile_bid"],
             soc_anchored=soc["anchored_bid"],
+            soc_water=soc["water_value_bid"],
         )
-        for key in ("schedule", "quantile_bid", "anchored_bid"):
+        for key in ("schedule", "quantile_bid", "anchored_bid", "water_value_bid"):
             acts = ev[key]
             summary = policy_summary(acts, costs, initial_cash=cash0[key])
             pnl = float(summary["final_cash_eur"]) - cash0[key]
@@ -157,6 +159,7 @@ def run(
                 f"sched={cash0['schedule']:.1f}  "
                 f"qbid={cash0['quantile_bid']:.1f}  "
                 f"anc={cash0['anchored_bid']:.1f}  "
+                f"wv={cash0['water_value_bid']:.1f}  "
                 f"{elapsed:.0f}s",
                 flush=True,
             )
@@ -171,6 +174,12 @@ def run(
         ),
         "anchored_bid_minus_schedule": block_bootstrap_mean_diff_ci(
             daily_s["anchored_bid"], daily_s["schedule"], block=7, n_boot=400, alpha=0.10, seed=0
+        ),
+        "water_value_bid_minus_schedule": block_bootstrap_mean_diff_ci(
+            daily_s["water_value_bid"], daily_s["schedule"], block=7, n_boot=400, alpha=0.10, seed=0
+        ),
+        "water_value_bid_minus_quantile": block_bootstrap_mean_diff_ci(
+            daily_s["water_value_bid"], daily_s["quantile_bid"], block=7, n_boot=400, alpha=0.10, seed=0
         ),
         "quantile_bid_minus_anchored": block_bootstrap_mean_diff_ci(
             daily_s["quantile_bid"], daily_s["anchored_bid"], block=7, n_boot=400, alpha=0.10, seed=0
@@ -215,6 +224,8 @@ def _render_md(r: dict) -> str:
     fc = r["final_cash_eur"]
     ci_q = r["bootstrap_daily_mean_diff_eur"]["quantile_bid_minus_schedule"]
     ci_a = r["bootstrap_daily_mean_diff_eur"]["anchored_bid_minus_schedule"]
+    ci_w = r["bootstrap_daily_mean_diff_eur"]["water_value_bid_minus_schedule"]
+    ci_wq = r["bootstrap_daily_mean_diff_eur"]["water_value_bid_minus_quantile"]
 
     def _ci(c):
         if c.get("mean_diff") is None:
@@ -227,14 +238,20 @@ def _render_md(r: dict) -> str:
 
     q_vs = fc["quantile_bid"] - fc["schedule"]
     a_vs = fc["anchored_bid"] - fc["schedule"]
+    w_vs = fc["water_value_bid"] - fc["schedule"]
+    w_vs_q = fc["water_value_bid"] - fc["quantile_bid"]
     helped_q = "improved" if q_vs > 0 else "did not improve"
     helped_a = "improved" if a_vs > 0 else "did not improve"
+    helped_w = "improved" if w_vs > 0 else "did not improve"
+    helped_wq = "improved" if w_vs_q > 0 else "did not improve"
     return f"""# Gate-closure bid curves vs locked schedule (paper only)
 
 Window: {r['window']['start']} → {r['window']['end']}  ({r['window']['n_days']} days, {r['window']['n_hours']} hours).
 Gate closure: {r['gate_closure']}. First deadline: {r['first_gate_closure']}.
 Forecast: **{r['forecast']}** — {r['forecast_notes']}
 Costs: sourced preset (see `docs/fees.md`); marginal price-tie fraction ASSUMED {r['marginal_accept_fraction_assumed']}.
+
+Water values are the opportunity cost of stored energy from a remaining-day cost-aware LP on the P50 path (finite difference of paper cash vs starting SoC). There is no terminal value for leftover end-of-day SoC — the same convention as the locked daily LP. Bid limits are centred on the resulting reservation prices; P50−P10 / P90−P50 still set the fan width. Paper trading only.
 
 ## Final net cash (EUR)
 
@@ -243,14 +260,19 @@ Costs: sourced preset (see `docs/fees.md`); marginal price-tie fraction ASSUMED 
 | Locked P50 cost-aware schedule | {fc['schedule']:.2f} | {r['throughput_mwh']['schedule']:.1f} | {r['cycles']['schedule']:.1f} |
 | Quantile bid curves (P10/P50/P90) | {fc['quantile_bid']:.2f} | {r['throughput_mwh']['quantile_bid']:.1f} | {r['cycles']['quantile_bid']:.1f} |
 | Schedule-anchored bid curves | {fc['anchored_bid']:.2f} | {r['throughput_mwh']['anchored_bid']:.1f} | {r['cycles']['anchored_bid']:.1f} |
+| Water-value bid curves | {fc['water_value_bid']:.2f} | {r['throughput_mwh']['water_value_bid']:.1f} | {r['cycles']['water_value_bid']:.1f} |
 
 - Quantile bids vs schedule: {q_vs:+.2f} EUR — **{helped_q}** on this window.
 - Anchored bids vs schedule: {a_vs:+.2f} EUR — **{helped_a}** on this window.
+- Water-value bids vs schedule: {w_vs:+.2f} EUR — **{helped_w}** on this window.
+- Water-value bids vs myopic quantile bids: {w_vs_q:+.2f} EUR — **{helped_wq}** on this window.
 
 ## Incremental daily value (moving-block bootstrap)
 
 - Quantile bids − schedule: {_ci(ci_q)}
 - Anchored bids − schedule: {_ci(ci_a)}
+- Water-value bids − schedule: {_ci(ci_w)}
+- Water-value bids − quantile bids: {_ci(ci_wq)}
 
 A CI that contains 0 means the year-long difference is not distinguishable from noise at 90% under weekly blocks.
 
@@ -258,7 +280,9 @@ A CI that contains 0 means the year-long difference is not distinguishable from 
 
 - Same forecast fan for every policy; no lookahead into delivery-day prices.
 - The locked schedule is a price-taking fill of the cost-aware LP on P50 (the current approach).
-- Bid curves can refuse a fill when the realised clearing price misses the forecast; they can also under-fill a day the schedule would have planned better across hours (no explicit water-value in the standalone quantile curve).
+- Myopic quantile curves bid around each hour's own P10/P50/P90 and have no water value, so they under-cycle relative to the locked schedule.
+- Water-value curves buy only below ``η_c · wv − add`` and sell only above ``wv / η_d + add``. They can still miss a fill when the realised price is inside the reservation but the P50 path (and therefore wv) was wrong.
+- Intra-day water value only: leftover SoC at the end of the delivery day is worthless in the LP, so a late-day reservation can be lower than a multi-day storage valuation would suggest.
 - Climatology is not the production ML+CQR fan. Figures are not comparable to the published ML cost-aware 65,473 EUR path without a `--forecast ml` run.
 - Paper trading only; no real orders.
 """

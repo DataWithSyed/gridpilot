@@ -74,16 +74,18 @@ Retrieval 2026-11-10. Source: [`docs/fees.md`](fees.md), `packages/forecast/resu
 
 Cost-aware ML paid **€8,219** degradation vs **€25** fees under this preset. This is the headline “cost-aware ML vs threshold vs perfect foresight” comparison.
 
-## 5. Gate-closure bid curves (negative result)
+## 5. Gate-closure bid curves (and water-value layer)
 
-Source: [`packages/forecast/results/GATE_CLOSURE_BIDDING.md`](../packages/forecast/results/GATE_CLOSURE_BIDDING.md), `packages/forecast/results/gate_closure_bidding.json`. Window **8,736** h, 364 days, sourced fees, 2026-11-10. Same-fan comparison only. The ML schedule here is **price-only and unclipped** (479.4 cycles) and is **not** a re-run of the 65,473 EUR path (411 cycles, fundamentals + PaperAgent clips).
+Source: [`packages/forecast/results/GATE_CLOSURE_BIDDING.md`](../packages/forecast/results/GATE_CLOSURE_BIDDING.md), `packages/forecast/results/gate_closure_bidding.json`. Window **8,736** h, 364 days, sourced fees. Same-fan comparison only. The climatology lock / quantile / anchored cash is unchanged from the 2026-11-10 run; water-value curves were added in a **2026-11-14** re-run of the same climatology script. The ML schedule row is **price-only and unclipped** (479.4 cycles), was **not** re-run on 2026-11-14, and is **not** a re-run of the 65,473 EUR path (411 cycles, fundamentals + PaperAgent clips).
 
-| Forecast | Locked schedule € | Quantile bids € | Anchored bids € | Bids − schedule €/day (90% CI) |
-|---|---:|---:|---:|---|
-| 90-day hour-of-day climatology | 60,379 | 13,082 | 17,740 | quantile **−129.94 [−149.98, −107.28]**; anchored **−117.14 [−139.04, −94.56]** |
-| Walk-forward ML + tight Mondrian (price-only) | 75,102 | 3,566 | 22,867 | quantile **−196.53 [−222.03, −171.41]**; anchored **−143.50 [−163.33, −122.56]** |
+| Forecast | Locked schedule € | Quantile bids € | Anchored bids € | Water-value bids € | vs schedule €/day (90% CI) |
+|---|---:|---:|---:|---:|---|
+| 90-day hour-of-day climatology (2026-11-14) | 60,379 | 13,082 | 17,740 | **30,675** | quantile **−129.94 [−149.98, −107.28]**; anchored **−117.14 [−139.04, −94.56]**; water-value **−81.60 [−99.12, −61.52]** |
+| Walk-forward ML + tight Mondrian (price-only, 2026-11-10) | 75,102 | 3,566 | 22,867 | — | quantile **−196.53 [−222.03, −171.41]**; anchored **−143.50 [−163.33, −122.56]** |
 
-**Did not improve.** Every CI excludes 0. Curves under-cycle (151–188 vs 458–479 cycles). Design: [BIDDING.md](BIDDING.md).
+Climatology cycles: lock **457.8**, quantile **150.7**, anchored **75.4**, water-value **212.0**.
+
+**Water-value vs the locked schedule: did not improve** (CI excludes 0). **Water-value vs myopic quantile bids: improved** by **+17,594** €, **+48.33 [39.45, 58.87]** €/day (CI excludes 0). Reservations reduce under-cycling relative to the myopic fan (151 → 212 cycles) but still trail the price-taking lock (458 cycles). Design: [BIDDING.md](BIDDING.md).
 
 ## 6. Post-DA re-optimisation — proxy-only
 

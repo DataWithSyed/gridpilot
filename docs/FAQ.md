@@ -24,7 +24,7 @@ The nominal interval is 80%. On the 12-month window, raw coverage was **50.0%**,
 
 ## Why did bid curves lose money versus the locked schedule?
 
-On the same fan, quantile and anchored curves **under-cycled** (about 151–188 cycles versus 458–479 on the locked price-taking schedule) and every 90% CI on the daily gap excluded zero. The result is documented as a **negative** finding in [BIDDING.md](BIDDING.md). It is not hidden or relabelled as a win.
+On the same climatology fan, myopic quantile and anchored curves **under-cycled** (about 151 and 75 cycles versus 458 on the locked price-taking schedule) and lost money versus the lock (90% CIs exclude zero). Adding water-value reservations on 2026-11-14 raised climatology bid cash from **13,082** to **30,675** € (**+48.33 [39.45, 58.87]** €/day vs myopic quantile; 212 cycles) but **still did not beat** the locked schedule at **60,379** € (**−81.60 [−99.12, −61.52]** €/day). Both findings are in [BIDDING.md](BIDDING.md). Neither is hidden or relabelled.
 
 ## What does “proxy-only” mean for the intraday result?
 
